@@ -1,0 +1,982 @@
+[
+  {
+    "id": "team12_tab",
+    "type": "tab",
+    "label": "Team 12 - Production Line",
+    "disabled": false,
+    "info": "Smart Production-Line Monitoring and Bottleneck Detection.\n\nTOP ROW  = OBSERVED data (real Company A records, replayed).\nBOTTOM   = SIMULATED virtual line. Never mix the two."
+  },
+  {
+    "id": "mqtt_broker",
+    "type": "mqtt-broker",
+    "name": "local broker",
+    "broker": "localhost",
+    "port": "1883",
+    "clientid": "node-red-team12",
+    "autoConnect": true,
+    "usetls": false,
+    "protocolVersion": "4",
+    "keepalive": "60",
+    "cleansession": false
+  },
+  {
+    "id": "sqlite_db",
+    "type": "sqlitedb",
+    "db": "db/team12.db",
+    "mode": "RWC"
+  },
+  {
+    "id": "in_machine",
+    "type": "mqtt in",
+    "z": "team12_tab",
+    "name": "observed/machine/#",
+    "topic": "team12/observed/machine/#",
+    "qos": "1",
+    "datatype": "json",
+    "broker": "mqtt_broker",
+    "x": 150,
+    "y": 80,
+    "wires": [
+      [
+        "fn_validate"
+      ]
+    ]
+  },
+  {
+    "id": "fn_validate",
+    "type": "function",
+    "z": "team12_tab",
+    "name": "validate record",
+    "func": "// Gate for every observed record.\n// Output 1 = good, goes to machine_events.\n// Output 2 = bad, goes to rejected_records and NOTHING else.\n// A bad record must never reach the metrics.\n\nconst m = msg.payload;\nlet reason = null;\n\nconst timestampOK = value =>\n    typeof value === 'string' &&\n    /(?:Z|[+-][0-9]{2}:[0-9]{2})$/i.test(value) &&\n    Number.isFinite(Date.parse(value));\n\nif (m === null || typeof m !== 'object' || Array.isArray(m)) {\n    reason = 'payload is not an object';\n} else if (!Number.isInteger(m.asset)) {\n    reason = 'asset must be an integer';\n} else if (!timestampOK(m.ts_dataset) || !timestampOK(m.ts_replay)) {\n    reason = 'dataset and replay timestamps need a timezone';\n} else if (typeof m.items !== 'number' || !Number.isFinite(m.items) || m.items < 0) {\n    reason = 'items missing, negative or non-finite';\n} else if (![1, 2, 3].includes(m.status)) {\n    // The audit found only status 1, 2 and 3 in this file.\n    reason = 'status not in (1,2,3)';\n}\n\nif (reason) {\n    node.status({fill: 'red', shape: 'ring', text: reason});\n    return [null, {\n        topic: 'INSERT INTO rejected_records (ts_replay, topic, reason, raw_payload) VALUES ($ts, $topic, $reason, $raw)',\n        params: {\n            $ts: new Date().toISOString(),\n            $topic: msg.topic,\n            $reason: reason,\n            $raw: JSON.stringify(m)\n        }\n    }];\n}\n\nnode.status({fill: 'green', shape: 'dot', text: 'machine ' + m.asset});\nreturn [{\n    topic: 'INSERT OR IGNORE INTO machine_events (source, run_id, seq, asset, ts_dataset, ts_replay, items, status, status_time, power_avg, cycle_time, power_ok, cycle_ok) VALUES ($source,$run,$seq,$asset,$tsd,$tsr,$items,$status,$stime,$power,$cycle,$pok,$cok)',\n    validated_payload: m,\n    params: {\n        $source: m.source || 'observed',\n        $run: m.run_id || null,\n        $seq: m.seq === undefined ? null : m.seq,\n        $asset: m.asset,\n        $tsd: m.ts_dataset,\n        $tsr: m.ts_replay,\n        $items: m.items,\n        $status: m.status,\n        $stime: m.status_time,\n        $power: m.power_avg,\n        $cycle: m.cycle_time,\n        $pok: m.power_ok ? 1 : 0,\n        $cok: m.cycle_ok ? 1 : 0\n    }\n}, null];",
+    "outputs": 2,
+    "noerr": 0,
+    "x": 390,
+    "y": 80,
+    "wires": [
+      [
+        "sql_bind",
+        "fn_count_ok"
+      ],
+      [
+        "sql_bind",
+        "fn_count_bad"
+      ]
+    ]
+  },
+  {
+    "id": "db_events",
+    "type": "sqlite",
+    "z": "team12_tab",
+    "mydb": "sqlite_db",
+    "sqlquery": "msg.topic",
+    "sql": "",
+    "name": "SQLite writes (all 8 tables)",
+    "x": 650,
+    "y": 60,
+    "wires": [
+      [
+        "fn_publish_validated"
+      ]
+    ]
+  },
+  {
+    "id": "fn_count_ok",
+    "type": "function",
+    "z": "team12_tab",
+    "name": "count accepted",
+    "func": "let n = (flow.get('accepted') || 0) + 1;\nflow.set('accepted', n);\nmsg.payload = n;\nreturn msg;",
+    "outputs": 1,
+    "x": 655,
+    "y": 20,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "fn_count_bad",
+    "type": "function",
+    "z": "team12_tab",
+    "name": "count rejected",
+    "func": "let n = (flow.get('rejected') || 0) + 1;\nflow.set('rejected', n);\nmsg.payload = n;\nreturn msg;",
+    "outputs": 1,
+    "x": 655,
+    "y": 190,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "in_metrics",
+    "type": "mqtt in",
+    "z": "team12_tab",
+    "name": "observed/metrics/#",
+    "topic": "team12/observed/metrics/#",
+    "qos": "0",
+    "datatype": "json",
+    "broker": "mqtt_broker",
+    "x": 150,
+    "y": 260,
+    "wires": [
+      [
+        "fn_metrics",
+        "fn_overview"
+      ]
+    ]
+  },
+  {
+    "id": "fn_metrics",
+    "type": "function",
+    "z": "team12_tab",
+    "name": "store + chart metrics",
+    "func": "const m = msg.payload;\n\n// 1. store\nconst store = {\n    topic: 'INSERT INTO machine_metrics (asset, ts_dataset, ts_replay, window_slots, rolling_items, items_per_slot, items_per_productive_slot, productive_share, alarm_share, cycle_time_indicator, coverage, baseline_items_per_slot, baseline_ratio, baseline_hour) VALUES ($a,$tsd,$tsr,$w,$ri,$ips,$ipps,$ps,$as,$ct,$cov,$base,$ratio,$hour)',\n    params: {\n        $a: m.asset, $tsd: m.ts_dataset, $tsr: m.ts_replay,\n        $w: m.window_slots, $ri: m.rolling_items,\n        $ips: m.items_per_slot, $ipps: m.items_per_productive_slot,\n        $ps: m.productive_share, $as: m.alarm_share,\n        $ct: m.cycle_time_indicator, $cov: m.coverage,\n        $base: m.baseline_items_per_slot, $ratio: m.baseline_ratio,\n        $hour: m.baseline_hour\n    }\n};\n\n// 2. chart: output vs that machine's own baseline\nconst chart = {\n    topic: 'machine ' + m.asset,\n    payload: m.items_per_productive_slot === null ? 0 : m.items_per_productive_slot\n};\n\n// 3. coverage, so a gap in the data is visible on screen\nconst coverage = {\n    topic: 'machine ' + m.asset,\n    payload: Math.round(m.coverage * 100)\n};\n\nreturn [store, chart, coverage];",
+    "outputs": 3,
+    "x": 400,
+    "y": 260,
+    "wires": [
+      [
+        "sql_bind"
+      ],
+      [],
+      []
+    ]
+  },
+  {
+    "id": "in_alert",
+    "type": "mqtt in",
+    "z": "team12_tab",
+    "name": "observed/alert",
+    "topic": "team12/observed/alert",
+    "qos": "0",
+    "datatype": "json",
+    "broker": "mqtt_broker",
+    "x": 140,
+    "y": 400,
+    "wires": [
+      [
+        "fn_alert"
+      ]
+    ]
+  },
+  {
+    "id": "fn_alert",
+    "type": "function",
+    "z": "team12_tab",
+    "name": "store + show alert",
+    "func": "const a = msg.payload;\n\nconst store = {\n    topic: 'INSERT INTO machine_alerts (ts_replay, ts_dataset, asset, level, kind, recommendation, message) VALUES ($tsr,$tsd,$a,$lvl,$kind,$rec,$msg)',\n    params: {\n        $tsr: a.ts_replay, $tsd: a.ts_dataset || null, $a: a.asset,\n        $lvl: a.level, $kind: a.kind,\n        $rec: a.recommendation || null, $msg: a.message\n    }\n};\n\nconst show = { payload: '[' + a.kind.toUpperCase() + '] ' + a.message };\nreturn [store, show];",
+    "outputs": 2,
+    "x": 390,
+    "y": 400,
+    "wires": [
+      [
+        "sql_bind"
+      ],
+      []
+    ]
+  },
+  {
+    "id": "in_forecast",
+    "type": "mqtt in",
+    "z": "team12_tab",
+    "name": "forecast/#",
+    "topic": "team12/forecast/#",
+    "qos": "0",
+    "datatype": "json",
+    "broker": "mqtt_broker",
+    "x": 130,
+    "y": 500,
+    "wires": [
+      [
+        "fn_forecast",
+        "fn_overview"
+      ]
+    ]
+  },
+  {
+    "id": "fn_forecast",
+    "type": "function",
+    "z": "team12_tab",
+    "name": "store + chart forecast",
+    "func": "const f = msg.payload;\n\nconst store = {\n    topic: 'INSERT INTO forecasts (ts_replay, asset, horizon_minutes, predicted_items, model, prediction_guarded, guard_limit) VALUES ($tsr,$a,$h,$p,$model,$guarded,$limit)',\n    params: { $tsr: f.ts_replay, $a: f.asset, $h: f.horizon_minutes, $p: f.predicted_items, $model: f.model, $guarded: f.prediction_guarded ? 1 : 0, $limit: f.guard_limit }\n};\n\nconst chart = { topic: 'machine ' + f.asset, payload: f.predicted_items };\nreturn [store, chart];",
+    "outputs": 2,
+    "x": 400,
+    "y": 500,
+    "wires": [
+      [
+        "sql_bind"
+      ],
+      []
+    ]
+  },
+  {
+    "id": "in_sim_state",
+    "type": "mqtt in",
+    "z": "team12_tab",
+    "name": "sim/state",
+    "topic": "team12/sim/state",
+    "qos": "0",
+    "datatype": "json",
+    "broker": "mqtt_broker",
+    "x": 130,
+    "y": 620,
+    "wires": [
+      [
+        "fn_sim_state",
+        "fn_overview"
+      ]
+    ]
+  },
+  {
+    "id": "fn_sim_state",
+    "type": "function",
+    "z": "team12_tab",
+    "name": "store + chart virtual line",
+    "func": "// EVERYTHING here is SIMULATED. It is stored in sim_* tables, which are\n// kept separate from the observed tables on purpose.\nconst s = msg.payload;\nconst inserts = [];\nconst queues = [];\nconst busy = [];\n\nfor (const st of s.stages) {\n    inserts.push({\n        topic: 'INSERT INTO sim_state (source, run_label, ts_replay, sim_second, stage_index, stage_name, rate_per_min, configured_rate, queue_length, busy_share, starved_share, completed, avg_wait_seconds, is_bottleneck) VALUES ($src,$run,$tsr,$sec,$i,$name,$rate,$crate,$q,$busy,$starv,$done,$wait,$bn)',\n        params: {\n            $src: 'simulated', $run: 'live', $tsr: s.ts_replay,\n            $sec: s.sim_second, $i: st.stage_index, $name: st.stage_name,\n            $rate: st.rate_per_min, $crate: st.configured_rate,\n            $q: st.queue_length, $busy: st.busy_share,\n            $starv: st.starved_share, $done: st.completed,\n            $wait: st.avg_wait_seconds, $bn: 0\n        }\n    });\n    queues.push({ topic: st.stage_name, payload: st.queue_length });\n    busy.push({ topic: st.stage_name, payload: Math.round(st.busy_share * 100) });\n}\n\nconst summary = {\n    payload: 'SIMULATED  completed: ' + s.line_completed +\n             '   throughput: ' + s.line_throughput_per_hour + '/h' +\n             '   avg wait: ' + s.avg_wait_seconds + 's' +\n             '   (t=' + s.sim_second + 's)'\n};\n\nreturn [inserts, queues, busy, summary];",
+    "outputs": 4,
+    "x": 410,
+    "y": 620,
+    "wires": [
+      [
+        "sql_bind"
+      ],
+      [],
+      [],
+      []
+    ]
+  },
+  {
+    "id": "in_sim_cmd",
+    "type": "mqtt in",
+    "z": "team12_tab",
+    "name": "sim/command",
+    "topic": "team12/sim/command",
+    "qos": "0",
+    "datatype": "json",
+    "broker": "mqtt_broker",
+    "x": 145,
+    "y": 790,
+    "wires": [
+      [
+        "fn_command",
+        "fn_overview"
+      ]
+    ]
+  },
+  {
+    "id": "in_sim_ack",
+    "type": "mqtt in",
+    "z": "team12_tab",
+    "name": "sim/ack",
+    "topic": "team12/sim/ack",
+    "qos": "0",
+    "datatype": "json",
+    "broker": "mqtt_broker",
+    "x": 130,
+    "y": 850,
+    "wires": [
+      [
+        "fn_ack",
+        "fn_overview"
+      ]
+    ]
+  },
+  {
+    "id": "fn_command",
+    "type": "function",
+    "z": "team12_tab",
+    "name": "store command",
+    "func": "const c = msg.payload;\nconst store = {\n    topic: 'INSERT INTO sim_commands (command_id, direction, ts_replay, sim_second, action, stage_index, detail, reason, old_rate, new_rate) VALUES ($id,$dir,$tsr,$sec,$act,$i,$detail,$reason,$old,$new)',\n    params: {\n        $id: c.command_id, $dir: 'command', $tsr: c.ts_replay,\n        $sec: c.sim_second, $act: c.action, $i: c.stage_index,\n        $detail: c.stage_name, $reason: c.reason,\n        $old: c.old_rate, $new: c.new_rate\n    }\n};\nconst show = { payload: 'COMMAND -> ' + c.stage_name + ': ' + c.old_rate + ' -> ' + c.new_rate + ' tokens/min. ' + c.reason };\nreturn [store, show];",
+    "outputs": 2,
+    "x": 390,
+    "y": 790,
+    "wires": [
+      [
+        "sql_bind"
+      ],
+      []
+    ]
+  },
+  {
+    "id": "fn_ack",
+    "type": "function",
+    "z": "team12_tab",
+    "name": "store ack",
+    "func": "const a = msg.payload;\nconst store = {\n    topic: 'INSERT INTO sim_commands (command_id, direction, ts_replay, sim_second, action, stage_index, accepted, old_rate, new_rate, reason) VALUES ($id,$dir,$tsr,$sec,$act,$i,$ok,$old,$new,$reason)',\n    params: {\n        $id: a.command_id, $dir: 'ack', $tsr: a.ts_replay,\n        $sec: a.sim_second, $act: a.action, $i: a.stage_index,\n        $ok: a.accepted ? 1 : 0,\n        $old: a.old_rate === undefined ? null : a.old_rate,\n        $new: a.new_rate === undefined ? null : a.new_rate,\n        $reason: a.reason\n    }\n};\nconst show = { payload: 'ACK ' + (a.accepted ? 'ACCEPTED' : 'REFUSED') + ' for ' + a.command_id + ': ' + a.reason };\nreturn [store, show];",
+    "outputs": 2,
+    "x": 380,
+    "y": 850,
+    "wires": [
+      [
+        "sql_bind"
+      ],
+      []
+    ]
+  },
+  {
+    "id": "in_sim_alert",
+    "type": "mqtt in",
+    "z": "team12_tab",
+    "name": "sim/alert",
+    "topic": "team12/sim/alert",
+    "qos": "0",
+    "datatype": "json",
+    "broker": "mqtt_broker",
+    "x": 135,
+    "y": 920,
+    "wires": [
+      [
+        "fn_sim_alert",
+        "fn_overview"
+      ]
+    ]
+  },
+  {
+    "id": "fn_sim_alert",
+    "type": "function",
+    "z": "team12_tab",
+    "name": "show virtual alert",
+    "func": "const a = msg.payload;\nconst text = a.recommendation\n    ? '[' + a.recommendation.toUpperCase() + '] ' + a.reason\n    : a.message;\nmsg.payload = 'SIMULATED  ' + text;\nreturn msg;",
+    "outputs": 1,
+    "x": 390,
+    "y": 920,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "in_forecast_advisory",
+    "type": "mqtt in",
+    "z": "team12_tab",
+    "name": "forecast/advisory",
+    "topic": "team12/decision/forecast_advisory",
+    "qos": "0",
+    "datatype": "json",
+    "broker": "mqtt_broker",
+    "x": 160,
+    "y": 390,
+    "wires": [
+      [
+        "fn_forecast_advisory",
+        "fn_overview"
+      ]
+    ]
+  },
+  {
+    "id": "fn_forecast_advisory",
+    "type": "function",
+    "z": "team12_tab",
+    "name": "store + show ML decision",
+    "func": "const a = msg.payload;\nconst store = {\n    topic: 'INSERT INTO forecast_advisories (source, ts_replay, ts_dataset, asset, model, predicted_items, expected_items, recommendation, reason) VALUES ($src,$tsr,$tsd,$asset,$model,$pred,$expected,$rec,$reason)',\n    params: {\n        $src: 'forecast', $tsr: a.ts_replay, $tsd: a.ts_dataset,\n        $asset: a.asset, $model: a.model, $pred: a.predicted_items,\n        $expected: a.expected_items, $rec: a.recommendation,\n        $reason: a.reason\n    }\n};\nconst show = {payload: 'FORECAST machine ' + a.asset + ': ' +\n    a.recommendation + '. ' + a.reason};\nreturn [store, show];",
+    "outputs": 2,
+    "noerr": 0,
+    "x": 400,
+    "y": 390,
+    "wires": [
+      [
+        "sql_bind"
+      ],
+      []
+    ]
+  },
+  {
+    "id": "sql_bind",
+    "type": "function",
+    "z": "team12_tab",
+    "name": "bind SQL parameters",
+    "func": "// node-red-node-sqlite's msg.topic mode binds msg.payload as an array.\n // Our upstream nodes use named parameters, so preserve their SQL order here.\nif (typeof msg.topic !== 'string' || !msg.params) {\n    node.error('SQL statement or parameters missing', msg);\n    return null;\n}\nconst names = [...msg.topic.matchAll(/\\$[A-Za-z_][A-Za-z0-9_]*/g)].map(m => m[0]);\nmsg.payload = names.map(name =>\n    Object.prototype.hasOwnProperty.call(msg.params, name) && msg.params[name] !== undefined\n        ? msg.params[name] : null);\ndelete msg.params;\nif(msg.topic.includes('company_b_events')) return [null,msg]; return [msg,null];",
+    "outputs": 2,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 720,
+    "y": 600,
+    "wires": [
+      [
+        "db_events"
+      ],
+      [
+        "db_b_events"
+      ]
+    ]
+  },
+  {
+    "id": "fn_publish_validated",
+    "type": "function",
+    "z": "team12_tab",
+    "name": "publish only after SQLite success",
+    "func": "// SQLite emits this message only after a successful insert.\n// Non-machine messages have no validated_payload and stop here.\nconst m = msg.validated_payload;\nif (!m) return null;\nreturn {topic: 'team12/observed/validated/' + m.asset, payload: JSON.stringify(m), qos: '0', retain: 'false'};",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 1070,
+    "y": 80,
+    "wires": [
+      [
+        "out_validated"
+      ]
+    ]
+  },
+  {
+    "id": "out_validated",
+    "type": "mqtt out",
+    "z": "team12_tab",
+    "name": "validated records -> analytics",
+    "topic": "",
+    "qos": "0",
+    "retain": "false",
+    "respTopic": "",
+    "contentType": "",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "mqtt_broker",
+    "x": 1320,
+    "y": 80,
+    "wires": []
+  },
+  {
+    "id": "ui_tab_present",
+    "type": "ui_tab",
+    "name": "Production Monitor · A + B",
+    "icon": "assessment",
+    "order": 1
+  },
+  {
+    "id": "ui_g_overview",
+    "type": "ui_group",
+    "name": "Overview",
+    "tab": "ui_tab_present",
+    "order": 1,
+    "disp": false,
+    "width": "12"
+  },
+  {
+    "id": "fn_overview",
+    "type": "function",
+    "z": "team12_tab",
+    "name": "build live overview",
+    "func": "const p=msg.payload||{};\nlet s=context.get('overview')||{machineMap:{},outputHistory:{},forecastHistory:{},queueHistory:{},busyHistory:{},stages:[],completed:0,forecastText:'Waiting for forecast',advice:'Waiting for decision',action:'No command sent yet',ack:'Waiting for a command',dbCounts:{accepted:0,rejected:0,forecasts:0,commands:0,acknowledgements:0},dbRows:[],demoModels:{},activeModel:{model:'gradient_boosting',provenance:'full_validated_study'},proposal:null,reviewText:'No operator decision yet',bMap:{},bRows:[]};\ns.replayState=s.replayState||{A:'Waiting for device',B:'Waiting for device'};s.bMap=s.bMap||{};s.bRows=s.bRows||[];s.demoModels=s.demoModels||{};s.activeModel=s.activeModel||{model:'gradient_boosting',provenance:'full_validated_study'};s.outputHistory=s.outputHistory||{};s.busyHistory=s.busyHistory||{};\nconst t=msg.topic||'';\nif(t==='team12/replay/status'&&['A','B'].includes(p.company)) s.replayState[p.company]=p.state;\nif(t==='team12/ml/train/result') s.demoModels[p.model]=p;\nif(t==='team12/db/models'&&Array.isArray(p)) p.forEach(r=>{if(!s.demoModels[r.model]||s.demoModels[r.model].status==='trained')s.demoModels[r.model]={...r,status:'trained'};});\nif(t==='team12/ml/active') {if(p.status==='active') s.activeModel=p;else s.modelError=p.error;}\nif(t==='team12/sim/proposal') {s.proposal=p;s.reviewText='Waiting for operator choice';}\nif(t==='team12/sim/review') {if(s.proposal&&s.proposal.command_id===p.proposal_id)s.proposal=null;s.reviewText=(p.decision==='accept'?'Accepted':'Rejected')+' proposal '+p.proposal_id+' for '+p.stage_name;}\nif(t.startsWith('team12/observed_b/metrics/')) s.bMap[p.asset]={asset:p.asset,status:p.latest_status,reports:p.reports_30m,production:Math.round(100*p.production_share),alarm:Math.round(100*p.alarm_share)};\nif(t.startsWith('team12/observed_b/forecast/')) s.bForecast=p;\nif(t==='team12/db/b-recent'&&Array.isArray(p)) s.bRows=p;\nif(t==='team12/db/counts') s.dbCounts=p;\nif(t==='team12/db/recent' && Array.isArray(p)) s.dbRows=p;\nif(t.startsWith('team12/observed/metrics/')){\n const output=p.items_per_productive_slot==null?'n/a':Number(p.items_per_productive_slot).toFixed(1);\n s.machineMap[p.asset]={asset:p.asset,output:output,coverage:Math.round(Number(p.coverage||0)*100)};\n const key='Machine '+p.asset;\n s.outputHistory[key]=(s.outputHistory[key]||[]).concat([Number(p.items_per_slot||0)]).slice(-30);\n}\nif(t.startsWith('team12/forecast/')){\n s.forecastText='Machine '+p.asset+': '+Number(p.predicted_items).toFixed(1)+' items'+(p.prediction_guarded?' (training-range cap)':'');\n const key='Machine '+p.asset;\n s.forecastHistory[key]=(s.forecastHistory[key]||[]).concat([Number(p.predicted_items)]).slice(-30);\n}\nif(t==='team12/decision/forecast_advisory') s.advice='Machine '+p.asset+': '+p.recommendation;\nif(t==='team12/sim/state' && Array.isArray(p.stages)){\n s.stages=p.stages.map(x=>({...x,busy:Math.round(Number(x.busy_share||0)*100)}));\n s.completed=p.line_completed;\n p.stages.forEach(x=>{const key=x.stage_name;s.queueHistory[key]=(s.queueHistory[key]||[]).concat([Number(x.queue_length)]).slice(-30);s.busyHistory[key]=(s.busyHistory[key]||[]).concat([Math.round(Number(x.busy_share||0)*100)]).slice(-30);});\n}\nif(t==='team12/sim/command') s.action=p.stage_name+': rate '+p.old_rate+' → '+p.new_rate+' tokens/min (command '+p.command_id+')';\nif(t==='team12/sim/ack') s.ack=(p.accepted?'Accepted':'Rejected')+' command '+p.command_id+(p.accepted?'':': '+p.reason);\nconst colors=['#087ba5','#d97706','#4e70b5','#64748b'];\nfunction lines(history,ceiling){\n const names=Object.keys(history).sort();\n const max=ceiling||Math.max(1,...names.flatMap(n=>history[n]));\n return {max:Math.ceil(max),lines:names.map((name,i)=>({name,color:colors[i%colors.length],points:history[name].map((v,j,a)=>(5+(a.length===1?0:j/(a.length-1)*93)).toFixed(1)+','+(95-v/max*85).toFixed(1)).join(' ')}))};\n}\nconst f=lines(s.forecastHistory),q=lines(s.queueHistory),o=lines(s.outputHistory),b=lines(s.busyHistory,100);\nconst trained=Object.entries(s.demoModels).filter(([name,r])=>r.status==='trained'&&Number.isFinite(Number(r.active_mae)));\ntrained.sort((a,b)=>Number(a[1].active_mae)-Number(b[1].active_mae));\nconst demoLeader=trained.length===3?trained[0][0]+' (active MAE '+trained[0][1].active_mae+')':'Train all three to compare the quick-run scores';\nconst bStatuses=['Production','Standby','MachineOn','Loading','Tooling','Alarm'];\nconst bValues=Object.values(s.bMap);\nconst bStatusBars=bStatuses.map(name=>({name,count:bValues.filter(x=>x.status===name).length,pct:bValues.length?Math.round(100*bValues.filter(x=>x.status===name).length/bValues.length):0}));\ncontext.set('overview',s);\nmsg.payload={replayState:s.replayState,machines:Object.values(s.machineMap).sort((a,b)=>a.asset-b.asset),forecastText:s.forecastText,advice:s.advice,action:s.action,ack:s.ack,stages:s.stages,completed:s.completed,forecastLines:f.lines,forecastMax:f.max,queueLines:q.lines,queueMax:q.max,outputLines:o.lines,outputMax:o.max,busyLines:b.lines,busyMax:b.max,dbCounts:s.dbCounts||{},dbRows:s.dbRows||[],demoModels:s.demoModels,demoLeader:demoLeader,activeModel:s.activeModel,modelError:s.modelError,proposal:s.proposal,reviewText:s.reviewText,bMachines:bValues.sort((a,b)=>a.asset-b.asset),bRows:s.bRows,bStatusBars:bStatusBars,bForecast:s.bForecast};\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 560,
+    "y": 1050,
+    "wires": [
+      [
+        "ui_overview"
+      ]
+    ]
+  },
+  {
+    "id": "ui_overview",
+    "type": "ui_template",
+    "z": "team12_tab",
+    "group": "ui_g_overview",
+    "name": "responsive production overview",
+    "order": 1,
+    "width": 12,
+    "height": 0,
+    "format": "<style>\n.t12 {font:14px/1.45 Arial,sans-serif;color:#17324d;max-width:100%;box-sizing:border-box}\n.t12 * {box-sizing:border-box}\n.t12 .head {padding:22px 26px;background:linear-gradient(115deg,#102a43,#176184);color:white;border-radius:10px}\n.t12 .title {font-size:26px;font-weight:700;line-height:1.3;margin:0 0 4px;color:#fff}\n.t12 h3 {font-size:16px;margin:0 0 10px}\n.t12 p {margin:5px 0 10px}\n.t12 .sub {opacity:.85}\n.t12 .row {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:16px}\n.t12 .panel {border:1px solid #d7e0e8;border-radius:10px;padding:20px;background:white;min-width:0;box-shadow:0 2px 8px rgba(16,42,67,.04)}\n.t12 .wide {grid-column:1/-1}\n.t12 .badge {display:inline-block;padding:3px 8px;border-radius:4px;font-weight:700;font-size:12px;background:#e8f3f8;color:#126088}\n.t12 .sim {background:#fff2df;color:#955316}\n.t12 .metric {font-size:23px;font-weight:700;line-height:1.2;margin:5px 0}\n.t12 .muted {color:#5b6c7b;font-size:12px}\n.t12 .flow {font-size:13px;line-height:1.8}\n.t12 table {width:100%;border-collapse:collapse;font-size:13px}\n.t12 th,.t12 td {text-align:left;padding:7px 6px;border-bottom:1px solid #e4eaf0}\n.t12 th {font-weight:700;color:#435b70}\n.t12 tr.selected {background:#e9f5fa;font-weight:700}\n.t12 .tablewrap {overflow-x:auto}\n.t12 .chart {height:205px;width:100%;background:#f8fafc;border:1px solid #e4eaf0;border-radius:6px}\n.t12 .legend {display:flex;flex-wrap:wrap;gap:10px;margin-top:7px;font-size:12px}\n.t12 .key {display:inline-block;width:12px;height:3px;vertical-align:middle;margin-right:4px}\n.t12 .status {padding:9px 10px;background:#f1f5f8;border-radius:5px;min-height:42px;overflow-wrap:anywhere}\n@media(max-width:760px) {.t12 .row{grid-template-columns:1fr}.t12 .wide{grid-column:auto}.t12 .head{padding:14px}.t12 .panel{padding:11px}.t12 h2{font-size:19px}}\nmd-card[node-id=\"ui_overview\"], .nr-dashboard-cardcontainer:has(> md-card[node-id=\"ui_overview\"]), .nr-dashboard-cardpanel:has(md-card[node-id=\"ui_overview\"]), ui-card-panel:has(md-card[node-id=\"ui_overview\"]), .masonry-container:has(md-card[node-id=\"ui_overview\"]) {height:auto!important;overflow:visible!important}\r\nui-card-panel:has(md-card[node-id=\"ui_overview\"]) {width:min(1180px,calc(100vw - 28px))!important;left:50%!important;transform:translateX(-50%)}\n.nr-dashboard-cardpanel:has(md-card[node-id=\"ui_overview\"]),.nr-dashboard-cardcontainer:has(> md-card[node-id=\"ui_overview\"]),md-card[node-id=\"ui_overview\"] {width:100%!important}\n\n/* model-eval-style */\n.t12 .sectionlabel{font-size:11px;font-weight:800;letter-spacing:.09em;color:#0d7495;text-transform:uppercase}\n.t12 .modelgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;margin:16px 0}\n.t12 .modelbox{border:1px solid #e2eaf0;border-radius:8px;background:#f8fbfd;padding:14px;min-width:0}\n.t12 .modelbox h4{font-size:14px;margin:0 0 10px;color:#17324d}\n.t12 .barrow{display:grid;grid-template-columns:116px 1fr 48px;gap:8px;align-items:center;margin:9px 0;font-size:12px}\n.t12 .bartrack{height:13px;background:#e4edf2;border-radius:20px;overflow:hidden}\n.t12 .barfill{height:100%;background:#92a9b6;border-radius:20px}\n.t12 .barfill.winner{background:#0789b6}\n.t12 .modelchart{width:100%;height:170px;background:white;border:1px solid #e4eaf0;border-radius:6px}\n.t12 .callout{border-left:4px solid #0789b6;background:#edf7fa;padding:10px 13px;margin-top:14px;border-radius:0 5px 5px 0}\n.t12 .simcallout{border-left-color:#d97706;background:#fff7eb}\n.t12 .kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0}\n.t12 .kpi{border:1px solid #dce7ee;border-radius:8px;background:#f8fbfd;padding:12px}\n.t12 .kpi strong{display:block;font-size:22px;line-height:1.2;color:#103e57}\n.t12 .kpi small{color:#536a79;font-size:12px}\n@media(max-width:760px){.t12 .modelgrid{grid-template-columns:1fr}.t12 .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}\n\n\n.t12 .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}\n.t12 .btn{border:0;border-radius:6px;background:#087ba5;color:#fff;padding:9px 13px;font:700 13px Arial;cursor:pointer}\n.t12 .btn:disabled{opacity:.45;cursor:not-allowed}\n.t12 .btn.secondary{background:#e7f0f5;color:#174765}\n.t12 .btn.reject{background:#a83838}\n.t12 .demo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px}\n.t12 .demo-card{border:1px solid #dce7ee;border-radius:8px;padding:14px;background:#f8fbfd}\n.t12 .demo-card h4{margin:0 0 7px;font-size:14px}\n@media(max-width:760px){.t12 .demo-grid{grid-template-columns:1fr}}\n.t12 .replaygrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}\n.t12 .replaycard{border:1px solid #dce7ee;border-radius:8px;padding:14px;background:#f8fbfd}\n.t12 .replaycard h4{margin:0 0 7px;font-size:15px}\n.t12 .replaycard .btn{margin-top:7px}\n.t12 .comparebar{height:15px;background:#e4edf2;border-radius:20px;overflow:hidden;margin:5px 0 12px}\n.t12 .comparebar span{display:block;height:100%;background:#087ba5}\n.t12 .comparebar .b{background:#d97706}\n@media(max-width:760px){.t12 .modelgrid{grid-template-columns:1fr}.t12 .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}\n@media(max-width:760px){.t12 .replaygrid{grid-template-columns:1fr}}\n\n\n/* clean-layout */\n.t12{font-size:14px;line-height:1.5;padding:4px 2px 16px}\n.t12 p,.t12 h1,.t12 h2,.t12 h3,.t12 h4{background:transparent!important}\n.t12 p.status{background:#f1f5f8!important}\n.t12 .head{padding:26px 30px}\n.t12 .row{gap:20px;margin-top:20px}\n.t12 .panel{padding:24px 26px}\n.t12 .sectionlabel{display:block;margin:0 0 6px}\n.t12 .badge{margin:0 0 10px}\n.t12 h3{font-size:17px;line-height:1.35;margin:0 0 8px}\n.t12 h4{font-size:14px;line-height:1.35;margin:0 0 6px}\n.t12 p{font-size:14px;line-height:1.55;margin:0 0 14px}\n.t12 .panel>p:last-child,.t12 .panel>.muted:last-child{margin-bottom:0}\n.t12 .muted{font-size:13px;line-height:1.5;color:#5b6c7b}\n.t12 .flow{font-size:14px;line-height:1.7;margin-bottom:8px}\n.t12 .status{padding:12px 14px;border-radius:8px;min-height:0;margin:14px 0}\n.t12 .callout{margin:18px 0 0;padding:13px 16px;line-height:1.55}\n.t12 .callout+.callout{margin-top:12px}\n.t12 .controls{gap:10px;margin:14px 0}\n.t12 .btn{padding:10px 16px}\n.t12 .replaygrid,.t12 .demo-grid{gap:16px;margin:18px 0}\n.t12 .replaycard,.t12 .demo-card{padding:18px 20px}\n.t12 .replaycard .status{margin:10px 0}\n.t12 .replaycard .btn{margin-top:0}\n.t12 .replaycard .btn+p{margin:12px 0 0}\n.t12 .demo-card>b{display:block;margin-bottom:8px}\n.t12 .demo-card .bartrack{margin:0 0 8px}\n.t12 .demo-card>:last-child,.t12 .replaycard>:last-child,.t12 .modelbox>:last-child{margin-bottom:0}\n.t12 .callout+p{margin-top:16px}\n.t12 .modelgrid{gap:16px;margin:18px 0;align-items:start}\n.t12 .modelbox{padding:18px 20px}\n.t12 .kpis{gap:14px;margin:18px 0}\n.t12 .kpi{padding:16px 18px}\n.t12 .kpi small{display:block;margin-top:4px}\n.t12 .metric{margin:8px 0 6px}\n.t12 .tablewrap{margin:14px 0}\n.t12 table{font-size:13px}\n.t12 th,.t12 td{padding:9px 12px}\n.t12 thead th{background:#f4f8fb;border-bottom:1px solid #d7e0e8}\n.t12 .chart{margin-top:14px}\n.t12 .legend{gap:16px;margin:10px 0 8px}\n@media(max-width:760px){.t12 .head{padding:18px 18px}.t12 .row{gap:14px;margin-top:14px}.t12 .panel{padding:18px 16px}.t12 .replaycard,.t12 .demo-card,.t12 .modelbox{padding:14px}.t12 th,.t12 td{padding:8px 8px}.t12 .kpis{gap:10px}}\n</style>\n<div class='t12'>\n <div class='head'><div class=\"title\">Production Monitor</div><div class='sub'>Machine output forecasting and virtual-line bottleneck response</div></div>\n <div class='row'>\n  <div class='panel wide'><span class='badge'>WORKFLOW</span><p class='flow'>Fixed Company A + B replays → MQTT → Node-RED validation → SQLite → analytics and selected model → forecast and decision → MQTT virtual actuator</p><div class='muted'>Observed machine readings and simulated line results are labelled separately.</div></div>\n\n\n<!-- replay-controls:start -->\n  <div class='panel wide' id='replay-controls'>\n    <div class='sectionlabel'>MQTT replay controls</div>\n    <h3>Start each company's data stream</h3>\n    <p class='muted'>Start the device role with --manual-replay first. The buttons send MQTT requests to that role. Both streams can run together; each uses its own topics, database tables and analytics.</p>\n    <div class='replaygrid'>\n      <div class='replaycard'><h4>Company A · output and forecasting</h4>\n        <div class='status'>Device: {{msg.payload.replayState.A || 'Waiting for device'}}</div>\n        <button class='btn' ng-disabled=\"msg.payload.replayState.A !== 'ready'\" ng-click='send({payload:{kind:\"replay\",company:\"A\"}})'>Start Company A</button>\n        <p class='muted'>Stored records: {{msg.payload.dbCounts.accepted || 0}} / 146 · forecasts: {{msg.payload.dbCounts.forecasts || 0}}</p>\n      </div>\n      <div class='replaycard'><h4>Company B · machine operating states</h4>\n        <div class='status'>Device: {{msg.payload.replayState.B || 'Waiting for device'}}</div>\n        <button class='btn' ng-disabled=\"msg.payload.replayState.B !== 'ready'\" ng-click='send({payload:{kind:\"replay\",company:\"B\"}})'>Start Company B</button>\n        <p class='muted'>Stored records: {{msg.payload.dbCounts.b_accepted || 0}} / 1,526 · live status charts below</p>\n      </div>\n    </div>\n  </div>\n<!-- replay-controls:end -->\n\n<!-- company-comparison:start -->\n  <div class='panel wide' id='company-comparison'>\n    <div class='sectionlabel'>Company A vs B · fixed dataset · Jan–Sep 2022</div>\n    <h3>Recorded interruption comparison</h3>\n    <p>Among reports labelled Production or Alarm, the machine-equal monthly alarm share averaged <b>7.19% for A</b> and <b>8.55% for B</b>. A was lower in 7 of 9 shared months. Lower is better for this specific interruption measure.</p>\n<!-- live-comparison:start -->\n    <div class='replaygrid'>\n      <div class='replaycard'><h4>Company A · replay sample</h4><b>{{msg.payload.dbCounts.accepted || 0}} stored records</b>\n        <p>Alarm among production or alarm reports: <b>{{msg.payload.dbCounts.a_alarm_pct == null ? 'Waiting' : (msg.payload.dbCounts.a_alarm_pct + '%')}}</b></p>\n        <div class='comparebar'><span ng-style='{\"width\":(msg.payload.dbCounts.a_alarm_bar || 0)+\"%\"}'></span></div>\n      </div>\n      <div class='replaycard'><h4>Company B · replay sample</h4><b>{{msg.payload.dbCounts.b_accepted || 0}} stored records</b>\n        <p>Alarm among production or alarm reports: <b>{{msg.payload.dbCounts.b_alarm_pct == null ? 'Waiting' : (msg.payload.dbCounts.b_alarm_pct + '%')}}</b></p>\n        <div class='comparebar'><span class='b' ng-style='{\"width\":(msg.payload.dbCounts.b_alarm_bar || 0)+\"%\"}'></span></div>\n      </div>\n    </div>\n    <p class='muted'>Live bars use only records received in this replay. Bar scale: 0–20% alarm share. Compare the same condition, not output: B has no item-count column. The nine-month graph below is the fuller historical context.</p>\n<!-- live-comparison:end -->\n    <svg style='width:100%;height:auto;max-height:300px;background:#f8fafc;border:1px solid #e4eaf0;border-radius:6px' viewBox='0 0 760 250' role='img' aria-label='Monthly alarm share among production or alarm records, Company A and B'><line x1=\"42\" y1=\"205.0\" x2=\"735\" y2=\"205.0\" stroke=\"#dce8ee\"/><text x=\"8\" y=\"209.0\" fill=\"#607586\" font-size=\"12\">0%</text><line x1=\"42\" y1=\"171.0\" x2=\"735\" y2=\"171.0\" stroke=\"#dce8ee\"/><text x=\"8\" y=\"175.0\" fill=\"#607586\" font-size=\"12\">5%</text><line x1=\"42\" y1=\"137.0\" x2=\"735\" y2=\"137.0\" stroke=\"#dce8ee\"/><text x=\"8\" y=\"141.0\" fill=\"#607586\" font-size=\"12\">10%</text><line x1=\"42\" y1=\"103.0\" x2=\"735\" y2=\"103.0\" stroke=\"#dce8ee\"/><text x=\"8\" y=\"107.0\" fill=\"#607586\" font-size=\"12\">15%</text><line x1=\"42\" y1=\"69.0\" x2=\"735\" y2=\"69.0\" stroke=\"#dce8ee\"/><text x=\"8\" y=\"73.0\" fill=\"#607586\" font-size=\"12\">20%</text><line x1=\"42\" y1=\"35.0\" x2=\"735\" y2=\"35.0\" stroke=\"#dce8ee\"/><text x=\"8\" y=\"39.0\" fill=\"#607586\" font-size=\"12\">25%</text><text x=\"45\" y=\"230\" fill=\"#607586\" font-size=\"12\">01</text><text x=\"129\" y=\"230\" fill=\"#607586\" font-size=\"12\">02</text><text x=\"213\" y=\"230\" fill=\"#607586\" font-size=\"12\">03</text><text x=\"297\" y=\"230\" fill=\"#607586\" font-size=\"12\">04</text><text x=\"381\" y=\"230\" fill=\"#607586\" font-size=\"12\">05</text><text x=\"465\" y=\"230\" fill=\"#607586\" font-size=\"12\">06</text><text x=\"549\" y=\"230\" fill=\"#607586\" font-size=\"12\">07</text><text x=\"633\" y=\"230\" fill=\"#607586\" font-size=\"12\">08</text><text x=\"717\" y=\"230\" fill=\"#607586\" font-size=\"12\">09</text><polyline points=\"55,134.1 139,185.9 223,194.7 307,182.4 391,192.5 475,172.4 559,147.0 643,71.7 727,124.3\" fill=\"none\" stroke=\"#087ba5\" stroke-width=\"3\"/><circle cx=\"55\" cy=\"134.1\" r=\"4\" fill=\"#087ba5\"/><circle cx=\"139\" cy=\"185.9\" r=\"4\" fill=\"#087ba5\"/><circle cx=\"223\" cy=\"194.7\" r=\"4\" fill=\"#087ba5\"/><circle cx=\"307\" cy=\"182.4\" r=\"4\" fill=\"#087ba5\"/><circle cx=\"391\" cy=\"192.5\" r=\"4\" fill=\"#087ba5\"/><circle cx=\"475\" cy=\"172.4\" r=\"4\" fill=\"#087ba5\"/><circle cx=\"559\" cy=\"147.0\" r=\"4\" fill=\"#087ba5\"/><circle cx=\"643\" cy=\"71.7\" r=\"4\" fill=\"#087ba5\"/><circle cx=\"727\" cy=\"124.3\" r=\"4\" fill=\"#087ba5\"/><polyline points=\"55,204.4 139,193.8 223,148.9 307,168.6 391,164.8 475,166.5 559,134.4 643,56.8 727,83.7\" fill=\"none\" stroke=\"#d97706\" stroke-width=\"3\"/><circle cx=\"55\" cy=\"204.4\" r=\"4\" fill=\"#d97706\"/><circle cx=\"139\" cy=\"193.8\" r=\"4\" fill=\"#d97706\"/><circle cx=\"223\" cy=\"148.9\" r=\"4\" fill=\"#d97706\"/><circle cx=\"307\" cy=\"168.6\" r=\"4\" fill=\"#d97706\"/><circle cx=\"391\" cy=\"164.8\" r=\"4\" fill=\"#d97706\"/><circle cx=\"475\" cy=\"166.5\" r=\"4\" fill=\"#d97706\"/><circle cx=\"559\" cy=\"134.4\" r=\"4\" fill=\"#d97706\"/><circle cx=\"643\" cy=\"56.8\" r=\"4\" fill=\"#d97706\"/><circle cx=\"727\" cy=\"83.7\" r=\"4\" fill=\"#d97706\"/></svg>\n    <div class='legend'><span><i class='key' style='background:#087ba5'></i>Company A</span><span><i class='key' style='background:#d97706'></i>Company B</span></div>\n    <div class='tablewrap'><table><thead><tr><th>Month</th><th>A alarm share</th><th>B alarm share</th><th>A report density</th><th>B report density</th></tr></thead><tbody><tr><td>2022-01</td><td>10.42%</td><td>0.09%</td><td>81.8%</td><td>24.1%</td></tr><tr><td>2022-02</td><td>2.81%</td><td>1.64%</td><td>98.3%</td><td>18.6%</td></tr><tr><td>2022-03</td><td>1.51%</td><td>8.25%</td><td>99.3%</td><td>21.2%</td></tr><tr><td>2022-04</td><td>3.33%</td><td>5.36%</td><td>97.6%</td><td>15.8%</td></tr><tr><td>2022-05</td><td>1.84%</td><td>5.91%</td><td>86.2%</td><td>18.2%</td></tr><tr><td>2022-06</td><td>4.79%</td><td>5.66%</td><td>94.9%</td><td>16.7%</td></tr><tr><td>2022-07</td><td>8.53%</td><td>10.38%</td><td>93.4%</td><td>16.8%</td></tr><tr><td>2022-08</td><td>19.60%</td><td>21.79%</td><td>68.5%</td><td>10.6%</td></tr><tr><td>2022-09</td><td>11.87%</td><td>17.84%</td><td>94.1%</td><td>19.3%</td></tr></tbody></table></div>\n    <div class='callout'><b>Interpretation:</b> This does not rank total factory output or efficiency. A has item counts but B does not; B also has Standby, Loading, Tooling and MachineOn states absent from A's 2022 state set. We compare only Production versus Alarm reports, average machines equally, and show report density because B reports much less frequently (17.92% versus A 90.46% of continuous grid slots). Missing reports are not assumed to be downtime.</div>\n  </div>\n<!-- company-comparison:end --><!-- company-b-models:start -->\n  <div class='panel wide' id='company-b-models'>\n    <div class='sectionlabel'>Company B · three trained models</div>\n    <h3>Next reported machine state</h3>\n    <p>Input: current state, power, machine and time. Target: the state in the next record when it arrives exactly one dataset minute later. Models trained on earlier fixed B records; validation and test are later time periods.</p>\n    <div class='tablewrap'><table><thead><tr><th>Algorithm</th><th>Validation macro F1</th><th>Score</th><th>Fit time</th></tr></thead><tbody><tr><td>Logistic regression · traditional</td><td>0.916</td><td><div class=\"bartrack\"><div class=\"barfill\" style=\"width:91.6%\"></div></div></td><td>1.21s</td></tr><tr><td>Gradient boosting · ensemble</td><td>0.962</td><td><div class=\"bartrack\"><div class=\"barfill\" style=\"width:96.2%\"></div></div></td><td>2.69s</td></tr><tr><td>Neural network · deep learning</td><td>0.961</td><td><div class=\"bartrack\"><div class=\"barfill\" style=\"width:96.1%\"></div></div></td><td>3.19s</td></tr></tbody></table></div>\n    <p>Selected by validation: <b>Gradient boosting · ensemble</b>. Held-out test macro F1: <b>0.941</b>; simple same-state baseline: <b>0.948</b>. Higher is better.</p>\n    <div class='callout'><b>Read this honestly:</b> The selected ML model scores -0.007 against the simple baseline on the later test period. This does not prove an operational improvement. Company A predicts item counts (MAE); Company B classifies operating states (macro F1), so their model scores are not directly comparable.</div>\n  </div>\n<!-- company-b-models:end -->  <div class='panel wide' id='company-b-live'>\n    <div class='sectionlabel'>Company B · live one-minute replay</div>\n    <h3>Operating states from stored Company B records</h3>\n    <p class='muted'>Company B has no item-count column. Its 14 reporting machines in this replay are shown separately from Company A. The state bars describe the latest reported state per machine.</p>\n    <div class='demo-grid'><div class='demo-card' ng-repeat='bar in msg.payload.bStatusBars'><b>{{bar.name}}</b><div class='bartrack'><div class='barfill' ng-style='{\"width\":bar.pct+\"%\"}'></div></div><span class='muted'>{{bar.count}} machines · {{bar.pct}}%</span></div></div>\n    <div class='callout' ng-if='msg.payload.bForecast'><b>Next reported state · machine {{msg.payload.bForecast.asset}}:</b> {{msg.payload.bForecast.predicted_next_status}} (currently {{msg.payload.bForecast.current_status}}; {{msg.payload.bForecast.model}}). Prediction assumes another report exactly one dataset minute later. It is not a measured outcome.</div>\n    <p>Company B records saved: <b>{{msg.payload.dbCounts.b_accepted}}</b> · rolling metrics saved: <b>{{msg.payload.dbCounts.b_metrics}}</b></p>\n    <div class='tablewrap'><table><thead><tr><th>Dataset time</th><th>Machine</th><th>State</th></tr></thead><tbody><tr ng-repeat='r in msg.payload.bRows track by r.id'><td>{{r.ts_dataset}}</td><td>{{r.asset}}</td><td>{{r.status}}</td></tr></tbody></table></div>\n  </div>\n  <div class='panel wide' id='database-status'>\n    <div class='sectionlabel'>Live storage · SQLite database</div>\n    <h3>Saved records</h3>\n    <p class='muted'>These counts and rows are read back from db/team12.db every four seconds, after Node-RED writes them. They are database results, not just chart messages.</p>\n    <div class='kpis'>\n      <div class='kpi'><strong>{{msg.payload.dbCounts.accepted}}</strong><small>Observed rows saved</small></div>\n      <div class='kpi'><strong>{{msg.payload.dbCounts.rejected}}</strong><small>Rejected rows saved</small></div>\n      <div class='kpi'><strong>{{msg.payload.dbCounts.forecasts}}</strong><small>Forecasts saved</small></div>\n      <div class='kpi'><strong>{{msg.payload.dbCounts.acknowledgements}} / {{msg.payload.dbCounts.commands}}</strong><small>Actuator ACK / sent commands</small></div>\n    </div>\n    <p class='muted'>Interactive runs saved: {{msg.payload.dbCounts.demo_trainings}} model trainings · {{msg.payload.dbCounts.guarded_forecasts}} guarded forecasts · {{msg.payload.dbCounts.operator_accepts}} accepted proposals · {{msg.payload.dbCounts.operator_rejects}} rejected proposals.</p>\n    <div class='tablewrap'><table><thead><tr><th>Latest observed row</th><th>Machine</th><th>Items</th><th>State</th></tr></thead><tbody><tr ng-repeat='r in msg.payload.dbRows track by r.id'><td>{{r.ts_dataset}}</td><td>{{r.asset}}</td><td>{{r.items}}</td><td>{{r.state}}</td></tr></tbody></table></div>\n    <p class='muted'>Factory timestamps are from 2022; replay time is today. Simulated line records and model forecasts have separate tables.</p>\n  </div>\n<!-- model-evaluation:start -->\n\n  <div class='panel wide' id='model-evaluation'>\n    <div class='sectionlabel'>Offline model evaluation · fixed Company A dataset</div>\n    <h3>Why this model was selected</h3>\n    <p>Three separately trained families used the same 681,935 complete examples, 45 past-only features and next-30-minute item-count target. The test period was held back until selection was locked.</p>\n    <div class='modelgrid'>\n      <div class='modelbox'><h4>Four-fold mean active MAE · lower is better</h4><div class=\"barrow\"><span>Ridge regression</span><div class=\"bartrack\"><div class=\"barfill\" style=\"width:100.0%\"></div></div><b>2.010</b></div><div class=\"barrow\"><span>Gradient boosting</span><div class=\"bartrack\"><div class=\"barfill winner\" style=\"width:86.5%\"></div></div><b>1.739</b></div><div class=\"barrow\"><span>Neural network</span><div class=\"bartrack\"><div class=\"barfill\" style=\"width:87.8%\"></div></div><b>1.764</b></div><div class='muted'>Validation evidence used to choose the deployed family.</div></div>\n      <div class='modelbox'><h4>Active MAE across time-ordered folds</h4><svg class=\"modelchart\" viewBox=\"0 0 420 175\" role=\"img\" aria-label=\"Four rolling validation folds; lower active MAE is better\"><line x1=\"42\" y1=\"134.1\" x2=\"408\" y2=\"134.1\" stroke=\"#dfe8ee\"/><text x=\"6\" y=\"138.1\" font-size=\"11\" fill=\"#607586\">1.5</text><line x1=\"42\" y1=\"79.5\" x2=\"408\" y2=\"79.5\" stroke=\"#dfe8ee\"/><text x=\"6\" y=\"83.5\" font-size=\"11\" fill=\"#607586\">2.0</text><line x1=\"42\" y1=\"25.0\" x2=\"408\" y2=\"25.0\" stroke=\"#dfe8ee\"/><text x=\"6\" y=\"29.0\" font-size=\"11\" fill=\"#607586\">2.5</text><text x=\"41\" y=\"166\" font-size=\"11\" fill=\"#607586\">F1</text><text x=\"156\" y=\"166\" font-size=\"11\" fill=\"#607586\">F2</text><text x=\"271\" y=\"166\" font-size=\"11\" fill=\"#607586\">F3</text><text x=\"386\" y=\"166\" font-size=\"11\" fill=\"#607586\">F4</text><polyline points=\"50,54.4 165,79.4 280,92.0 395,88.2\" fill=\"none\" stroke=\"#7f97a6\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><polyline points=\"50,64.4 165,113.0 280,128.0 395,126.7\" fill=\"none\" stroke=\"#0789b6\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><polyline points=\"50,71.7 165,115.5 280,116.5 395,117.4\" fill=\"none\" stroke=\"#d97706\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg><div class='legend'><span><i class='key' style='background:#7f97a6'></i>Ridge</span><span><i class='key' style='background:#0789b6'></i>Boosting</span><span><i class='key' style='background:#d97706'></i>Neural</span></div></div>\n    </div>\n    <div class='tablewrap'><table><thead><tr><th>Algorithm</th><th>Family</th><th>CV active MAE</th><th>Latest fold</th><th>Test active MAE</th><th>Test idle MAE</th><th>Test RMSE</th><th>Train time</th><th>Predict / 1000</th><th>Size</th></tr></thead><tbody><tr><td>Ridge regression</td><td>Traditional</td><td>2.010</td><td>1.921</td><td>2.936</td><td>1.009</td><td>3.752</td><td>0.6s</td><td>0.40 ms</td><td>0.002 MB</td></tr><tr class=\"selected\"><td>Gradient boosting</td><td>Ensemble</td><td>1.739</td><td>1.568</td><td>2.346</td><td>0.390</td><td>3.048</td><td>14.4s</td><td>13.37 ms</td><td>1.042 MB</td></tr><tr><td>Neural network</td><td>Neural</td><td>1.764</td><td>1.653</td><td>2.392</td><td>0.519</td><td>3.232</td><td>56.8s</td><td>1.04 ms</td><td>0.071 MB</td></tr></tbody></table></div>\n    <p class='muted'>Count prediction is a regression task: MAE and RMSE apply; classification accuracy, precision and recall do not. Candidate test scores are displayed for audit, never used for model selection. Test columns are each model fitted on the training block only; the shipped gradient-boosting model was then refit on all pre-test data (test active MAE 2.338). Training time and latency were measured on the training machine.</p>\n    <div class='callout'><b>Selected: Gradient boosting.</b> Its mean validation active MAE was 1.739; the neural network was only 1.45% behind. The last fold favoured boosting by 5.43%. The deployed model was refit on all pre-test data. On the later test period its active MAE was 2.338, versus 3.109 for the simple persistence reference. The winner did not win every fold.</div>\n    <div class='callout simcallout'><b>Offline virtual-line control check:</b> with an automatic acceptance policy under identical simulated arrivals and Stage 2 slowdown, control completed 223 items versus 202 without action (+10.4%). Average wait fell from 1805s to 829s (−54.1%). Manual approval in the live demo can change this outcome. These are simulation results, not factory measurements.</div>\n  </div>\n<!-- model-evaluation:end -->\n  <div class='panel wide' id='interactive-ml'>\n    <div class='sectionlabel'>Interactive ML lab · fixed Company A data</div>\n    <h3>Train and compare three models</h3>\n    <p class='muted'>Each button really fits a new model on the same 50,000-row chronological pre-replay demo slice. A 25-minute label embargo protects the validation period. These quick-run scores are separate from the full 681,935-example evaluation above.</p>\n    <div class='demo-grid'>\n      <div class='demo-card' ng-repeat='m in [{id:\"ridge\",name:\"Ridge regression\",family:\"Traditional\"},{id:\"gradient_boosting\",name:\"Gradient boosting\",family:\"Ensemble\"},{id:\"neural_network\",name:\"Neural network\",family:\"Two hidden layers\"}]'>\n        <h4>{{m.name}}</h4><div class='muted'>{{m.family}}</div>\n        <div class='metric' ng-if='msg.payload.demoModels[m.id].status===\"trained\"'>{{msg.payload.demoModels[m.id].active_mae}} <small>active MAE</small></div>\n        <div class='muted' ng-if='msg.payload.demoModels[m.id].status===\"trained\"'>Overall MAE {{msg.payload.demoModels[m.id].overall_mae}} · idle MAE {{msg.payload.demoModels[m.id].idle_mae}} · {{msg.payload.demoModels[m.id].train_rows}} train / {{msg.payload.demoModels[m.id].valid_rows}} validation · {{msg.payload.demoModels[m.id].train_seconds}}s</div>\n        <div class='status' ng-if='msg.payload.demoModels[m.id].status===\"training\"'>Training on real data…</div>\n        <div class='status' ng-if='msg.payload.demoModels[m.id].status===\"error\" || msg.payload.demoModels[m.id].status===\"busy\"'>{{msg.payload.demoModels[m.id].error}}</div>\n        <div class='controls'><button class='btn' ng-click='send({payload:{kind:\"train\",model:m.id}})'>Train demo model</button><button class='btn secondary' ng-disabled='msg.payload.demoModels[m.id].status!==\"trained\"' ng-click='send({payload:{kind:\"select\",model:m.id}})'>Use for live forecasts</button></div>\n      </div>\n    </div>\n    <p class='status'><b>Quick-run leader:</b> {{msg.payload.demoLeader}}</p>\n    <div class='controls'><button class='btn secondary' ng-click='send({payload:{kind:\"select\",model:\"validated_winner\"}})'>Restore full-study winner</button></div>\n    <p class='status'>Active forecasting model: <b>{{msg.payload.activeModel.model}}</b> · {{msg.payload.activeModel.provenance}} <span ng-if='msg.payload.modelError'> · {{msg.payload.modelError}}</span></p>\n    <p class='muted'>The full study chose gradient boosting by time-ordered validation. Quick models use the same training-derived per-machine range guard; capped live forecasts are marked. Switching here changes subsequent forecasts; it does not retrain the full study or claim a physical factory improvement.</p>\n  </div>\n\n  <div class='panel'><span class='badge'>OBSERVED DATA</span><h3>Latest machine readings</h3><div class='tablewrap'><table><thead><tr><th>Machine</th><th>Items / productive slot</th><th>Coverage</th></tr></thead><tbody><tr ng-repeat='m in msg.payload.machines track by m.asset'><td>{{m.asset}}</td><td>{{m.output}}</td><td>{{m.coverage}}%</td></tr></tbody></table></div><p class='muted'>Coverage shows received reports. Low coverage is missing data, not zero production.</p></div>\n  <div class='panel'><span class='badge'>FORECAST</span><h3>Next 30-minute output</h3><div class='metric'>{{msg.payload.forecastText}}</div><p class='muted'>Estimated items for the latest machine; not measured production.</p><div class='status'>{{msg.payload.advice}}</div></div>\n  <div class='panel'><h3>Forecast trend by machine</h3><svg class='chart' viewBox='0 0 100 100' preserveAspectRatio='none'><line x1='5' y1='95' x2='98' y2='95' stroke='#bdcbd7' stroke-width='.4'/><line x1='5' y1='50' x2='98' y2='50' stroke='#e0e7ed' stroke-width='.4'/><polyline ng-repeat='line in msg.payload.forecastLines track by line.name' ng-attr-points='{{line.points}}' fill='none' ng-attr-stroke='{{line.color}}' stroke-width='1.5' vector-effect='non-scaling-stroke'/></svg><div class='legend'><span ng-repeat='line in msg.payload.forecastLines'><i class='key' ng-style='{\"background\":line.color}'></i>{{line.name}}</span></div><p class='muted'>Horizontal: recent replay updates. Vertical: predicted items, 0 to {{msg.payload.forecastMax}}.</p></div>\n  <div class='panel'><h3>Virtual queue trend</h3><svg class='chart' viewBox='0 0 100 100' preserveAspectRatio='none'><line x1='5' y1='95' x2='98' y2='95' stroke='#bdcbd7' stroke-width='.4'/><line x1='5' y1='50' x2='98' y2='50' stroke='#e0e7ed' stroke-width='.4'/><polyline ng-repeat='line in msg.payload.queueLines track by line.name' ng-attr-points='{{line.points}}' fill='none' ng-attr-stroke='{{line.color}}' stroke-width='1.5' vector-effect='non-scaling-stroke'/></svg><div class='legend'><span ng-repeat='line in msg.payload.queueLines'><i class='key' ng-style='{\"background\":line.color}'></i>{{line.name}}</span></div><p class='muted'>Horizontal: recent simulated updates. Vertical: waiting items, 0 to {{msg.payload.queueMax}}. A sustained growing queue can signal a bottleneck.</p></div>\n\n  <div class='panel'><span class='badge'>OBSERVED DATA</span><h3>Recorded output trend</h3><svg class='chart' viewBox='0 0 100 100' preserveAspectRatio='none'><line x1='5' y1='95' x2='98' y2='95' stroke='#bdcbd7' stroke-width='.4'/><line x1='5' y1='50' x2='98' y2='50' stroke='#e0e7ed' stroke-width='.4'/><polyline ng-repeat='line in msg.payload.outputLines track by line.name' ng-attr-points='{{line.points}}' fill='none' ng-attr-stroke='{{line.color}}' stroke-width='1.5' vector-effect='non-scaling-stroke'/></svg><div class='legend'><span ng-repeat='line in msg.payload.outputLines'><i class='key' ng-style='{\"background\":line.color}'></i>{{line.name}}</span></div><p class='muted'>Recent recorded items per five-minute slot, 0 to {{msg.payload.outputMax}}. Zero can mean an idle machine.</p></div>\n  <div class='panel'><span class='badge sim'>SIMULATED LINE</span><h3>Stage busy time</h3><svg class='chart' viewBox='0 0 100 100' preserveAspectRatio='none'><line x1='5' y1='95' x2='98' y2='95' stroke='#bdcbd7' stroke-width='.4'/><line x1='5' y1='50' x2='98' y2='50' stroke='#e0e7ed' stroke-width='.4'/><polyline ng-repeat='line in msg.payload.busyLines track by line.name' ng-attr-points='{{line.points}}' fill='none' ng-attr-stroke='{{line.color}}' stroke-width='1.5' vector-effect='non-scaling-stroke'/></svg><div class='legend'><span ng-repeat='line in msg.payload.busyLines'><i class='key' ng-style='{\"background\":line.color}'></i>{{line.name}}</span></div><p class='muted'>Recent simulated busy share by stage, 0 to 100%. Compare with the queue trend above.</p></div>\n  <div class='panel wide'><span class='badge sim'>SIMULATED LINE</span><h3>Stage status</h3><div class='tablewrap'><table><thead><tr><th>Stage</th><th>Waiting</th><th>Busy</th><th>Rate (tokens/min)</th></tr></thead><tbody><tr ng-repeat='s in msg.payload.stages track by s.stage_index'><td>{{s.stage_name}}</td><td>{{s.queue_length}}</td><td>{{s.busy}}%</td><td>{{s.rate_per_min}}</td></tr></tbody></table></div><p class='muted'>Completed: {{msg.payload.completed}} simulated items. This stage order and its queues are not observed factory measurements.</p></div>\n\n  <div class='panel wide' id='operator-review'><span class='badge sim'>SIMULATED LINE</span><h3>Approve a proposed bottleneck action</h3>\n    <div ng-if='msg.payload.proposal'>\n      <div class='metric'>{{msg.payload.proposal.stage_name}}: {{msg.payload.proposal.old_rate}} → {{msg.payload.proposal.new_rate}} tokens/min</div>\n      <p>{{msg.payload.proposal.reason}}</p>\n      <div class='controls'><button class='btn' ng-click='send({payload:{kind:\"review\",decision:\"accept\",proposal_id:msg.payload.proposal.command_id}})'>Accept and send command</button><button class='btn reject' ng-click='send({payload:{kind:\"review\",decision:\"reject\",proposal_id:msg.payload.proposal.command_id}})'>Reject action</button></div>\n    </div>\n    <p ng-if='!msg.payload.proposal' class='muted'>Waiting for a sustained simulated bottleneck. No command is sent without your acceptance.</p>\n    <div class='status'>{{msg.payload.reviewText}}</div>\n  </div>\n  <div class='panel'><h3>Decision sent through MQTT</h3><div class='status'>{{msg.payload.action}}</div><p class='muted'>Only the virtual actuator receives rate commands.</p></div>\n  <div class='panel'><h3>Actuator response</h3><div class='status'>{{msg.payload.ack}}</div><p class='muted'>Acknowledgement confirms whether the virtual command was accepted.</p></div>\n </div>\n</div>",
+    "storeOutMessages": true,
+    "fwdInMessages": false,
+    "resendOnRefresh": true,
+    "templateScope": "local",
+    "className": "",
+    "x": 790,
+    "y": 1050,
+    "wires": [
+      [
+        "fn_ui_action"
+      ]
+    ]
+  },
+  {
+    "id": "db_poll",
+    "type": "inject",
+    "z": "team12_tab",
+    "name": "refresh database view every 4 seconds",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "4",
+    "crontab": "",
+    "once": true,
+    "onceDelay": 1,
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 180,
+    "y": 1120,
+    "wires": [
+      [
+        "fn_db_queries"
+      ]
+    ]
+  },
+  {
+    "id": "fn_db_queries",
+    "type": "function",
+    "z": "team12_tab",
+    "name": "read counts and latest stored rows",
+    "outputs": 4,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "func": "const counts={topic:\"SELECT (SELECT COUNT(*) FROM machine_events) AS accepted, (SELECT COUNT(*) FROM company_b_events) AS b_accepted, (SELECT COUNT(*) FROM company_b_metrics) AS b_metrics, (SELECT COUNT(*) FROM rejected_records) AS rejected, (SELECT COUNT(*) FROM forecasts) AS forecasts, (SELECT COUNT(*) FROM forecasts WHERE prediction_guarded=1) AS guarded_forecasts, (SELECT COUNT(*) FROM sim_commands WHERE direction='command') AS commands, (SELECT COUNT(*) FROM sim_commands WHERE direction='ack' AND accepted=1) AS acknowledgements, (SELECT COUNT(*) FROM ml_demo_runs) AS demo_trainings, (SELECT COUNT(*) FROM sim_reviews WHERE decision='accept') AS operator_accepts, (SELECT COUNT(*) FROM sim_reviews WHERE decision='reject') AS operator_rejects, (SELECT ROUND(100.0*SUM(CASE WHEN status=3 THEN 1 ELSE 0 END)/NULLIF(SUM(CASE WHEN status IN (1,2,3) THEN 1 ELSE 0 END),0),1) FROM machine_events) AS a_alarm_pct, (SELECT ROUND(100.0*SUM(CASE WHEN status='Alarm' THEN 1 ELSE 0 END)/NULLIF(SUM(CASE WHEN status IN ('Production','Alarm') THEN 1 ELSE 0 END),0),1) FROM company_b_events) AS b_alarm_pct, (SELECT MIN(100,ROUND(500.0*SUM(CASE WHEN status=3 THEN 1 ELSE 0 END)/NULLIF(SUM(CASE WHEN status IN (1,2,3) THEN 1 ELSE 0 END),0),1)) FROM machine_events) AS a_alarm_bar, (SELECT MIN(100,ROUND(500.0*SUM(CASE WHEN status='Alarm' THEN 1 ELSE 0 END)/NULLIF(SUM(CASE WHEN status IN ('Production','Alarm') THEN 1 ELSE 0 END),0),1)) FROM company_b_events) AS b_alarm_bar\",payload:[]};\nconst recent={topic:\"SELECT id, asset, substr(ts_dataset,1,16) AS ts_dataset, items, CASE status WHEN 1 THEN 'manual' WHEN 2 THEN 'automatic' WHEN 3 THEN 'alarm' ELSE 'other' END AS state FROM machine_events ORDER BY id DESC LIMIT 5\",payload:[]};\nconst models={topic:\"SELECT r.* FROM ml_demo_runs r JOIN (SELECT model,MAX(id) AS last_id FROM ml_demo_runs GROUP BY model) latest ON r.id=latest.last_id\",payload:[]};const bRecent={topic:\"SELECT id,asset,substr(ts_dataset,1,16) AS ts_dataset,status FROM company_b_events ORDER BY id DESC LIMIT 8\",payload:[]};return [counts,recent,models,bRecent];",
+    "x": 470,
+    "y": 1120,
+    "wires": [
+      [
+        "db_counts"
+      ],
+      [
+        "db_recent"
+      ],
+      [
+        "db_ml_runs"
+      ],
+      [
+        "db_b_recent"
+      ]
+    ]
+  },
+  {
+    "id": "db_counts",
+    "type": "sqlite",
+    "z": "team12_tab",
+    "mydb": "sqlite_db",
+    "sqlquery": "msg.topic",
+    "sql": "",
+    "name": "SQLite dashboard counts",
+    "x": 720,
+    "y": 1100,
+    "wires": [
+      [
+        "fn_db_counts"
+      ]
+    ]
+  },
+  {
+    "id": "db_recent",
+    "type": "sqlite",
+    "z": "team12_tab",
+    "mydb": "sqlite_db",
+    "sqlquery": "msg.topic",
+    "sql": "",
+    "name": "SQLite recent observed rows",
+    "x": 730,
+    "y": 1140,
+    "wires": [
+      [
+        "fn_db_recent"
+      ]
+    ]
+  },
+  {
+    "id": "fn_db_counts",
+    "type": "function",
+    "z": "team12_tab",
+    "name": "format stored counts",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "func": "msg.topic='team12/db/counts';msg.payload=Array.isArray(msg.payload)&&msg.payload[0]?msg.payload[0]:{};return msg;",
+    "x": 960,
+    "y": 1100,
+    "wires": [
+      [
+        "fn_overview"
+      ]
+    ]
+  },
+  {
+    "id": "fn_db_recent",
+    "type": "function",
+    "z": "team12_tab",
+    "name": "format recent stored rows",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "func": "msg.topic='team12/db/recent';msg.payload=Array.isArray(msg.payload)?msg.payload:[];return msg;",
+    "x": 970,
+    "y": 1140,
+    "wires": [
+      [
+        "fn_overview"
+      ]
+    ]
+  },
+  {
+    "id": "in_ml_train",
+    "type": "mqtt in",
+    "z": "team12_tab",
+    "name": "ML demo training result",
+    "topic": "team12/ml/train/result",
+    "qos": "0",
+    "datatype": "json",
+    "broker": "mqtt_broker",
+    "x": 155,
+    "y": 1280,
+    "wires": [
+      [
+        "fn_ml_train",
+        "fn_overview"
+      ]
+    ]
+  },
+  {
+    "id": "in_ml_active",
+    "type": "mqtt in",
+    "z": "team12_tab",
+    "name": "active forecast model",
+    "topic": "team12/ml/active",
+    "qos": "0",
+    "datatype": "json",
+    "broker": "mqtt_broker",
+    "x": 155,
+    "y": 1320,
+    "wires": [
+      [
+        "fn_overview"
+      ]
+    ]
+  },
+  {
+    "id": "in_sim_proposal",
+    "type": "mqtt in",
+    "z": "team12_tab",
+    "name": "virtual line proposal",
+    "topic": "team12/sim/proposal",
+    "qos": "0",
+    "datatype": "json",
+    "broker": "mqtt_broker",
+    "x": 155,
+    "y": 1360,
+    "wires": [
+      [
+        "fn_overview"
+      ]
+    ]
+  },
+  {
+    "id": "in_sim_review",
+    "type": "mqtt in",
+    "z": "team12_tab",
+    "name": "operator decision",
+    "topic": "team12/sim/review",
+    "qos": "0",
+    "datatype": "json",
+    "broker": "mqtt_broker",
+    "x": 155,
+    "y": 1400,
+    "wires": [
+      [
+        "fn_sim_review",
+        "fn_overview"
+      ]
+    ]
+  },
+  {
+    "id": "fn_ml_train",
+    "type": "function",
+    "z": "team12_tab",
+    "name": "save real demo training metrics",
+    "func": "const p=msg.payload;\nif(p.status!=='trained') return null;\nreturn {topic:'INSERT INTO ml_demo_runs (ts_replay,model,train_rows,valid_rows,active_valid_rows,active_mae,idle_mae,overall_mae,train_seconds) VALUES ($ts,$m,$tr,$vr,$av,$a,$i,$o,$s)',params:{$ts:p.ts_replay,$m:p.model,$tr:p.train_rows,$vr:p.valid_rows,$av:p.active_valid_rows,$a:p.active_mae,$i:p.idle_mae,$o:p.overall_mae,$s:p.train_seconds}};",
+    "outputs": 1,
+    "x": 465,
+    "y": 1280,
+    "wires": [
+      [
+        "sql_bind"
+      ]
+    ]
+  },
+  {
+    "id": "fn_sim_review",
+    "type": "function",
+    "z": "team12_tab",
+    "name": "save operator accept or reject",
+    "func": "const p=msg.payload;\nreturn {topic:'INSERT INTO sim_reviews (proposal_id,ts_replay,decision,sim_second,stage_index,stage_name,old_rate,new_rate,reason) VALUES ($id,$ts,$d,$sec,$idx,$name,$old,$new,$reason)',params:{$id:p.proposal_id,$ts:p.ts_replay,$d:p.decision,$sec:p.sim_second,$idx:p.stage_index,$name:p.stage_name,$old:p.old_rate,$new:p.new_rate,$reason:p.reason}};",
+    "outputs": 1,
+    "x": 465,
+    "y": 1400,
+    "wires": [
+      [
+        "sql_bind"
+      ]
+    ]
+  },
+  {
+    "id": "fn_ui_action",
+    "type": "function",
+    "z": "team12_tab",
+    "name": "validate dashboard control",
+    "func": "const p=msg.payload||{};\nconst allowed=['ridge','gradient_boosting','neural_network'];\nlet dest,body;\nif(p.kind==='train'&&allowed.includes(p.model)){\n dest='team12/ml/train/request';body={model:p.model};\n}else if(p.kind==='select'&&(allowed.includes(p.model)||p.model==='validated_winner')){\n dest='team12/ml/select';body={model:p.model};\n}else if(p.kind==='review'&&['accept','reject'].includes(p.decision)&&/^[a-f0-9]{8}$/.test(p.proposal_id||'')){\n dest='team12/sim/approval';body={proposal_id:p.proposal_id,decision:p.decision};\n}else if(p.kind==='replay'&&['A','B'].includes(p.company)){\n dest='team12/replay/control';body={action:'start',company:p.company};\n}else return null;\nreturn {topic:dest,payload:JSON.stringify(body)};",
+    "outputs": 1,
+    "x": 465,
+    "y": 1450,
+    "wires": [
+      [
+        "out_ui_action"
+      ]
+    ]
+  },
+  {
+    "id": "out_ui_action",
+    "type": "mqtt out",
+    "z": "team12_tab",
+    "name": "dashboard request to MQTT",
+    "topic": "",
+    "qos": "1",
+    "retain": "false",
+    "respTopic": "",
+    "contentType": "",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "mqtt_broker",
+    "x": 740,
+    "y": 1450,
+    "wires": []
+  },
+  {
+    "id": "db_ml_runs",
+    "type": "sqlite",
+    "z": "team12_tab",
+    "mydb": "sqlite_db",
+    "sqlquery": "msg.topic",
+    "sql": "",
+    "name": "SQLite latest demo models",
+    "x": 730,
+    "y": 1180,
+    "wires": [
+      [
+        "fn_db_models"
+      ]
+    ]
+  },
+  {
+    "id": "fn_db_models",
+    "type": "function",
+    "z": "team12_tab",
+    "name": "format latest saved demo training",
+    "outputs": 1,
+    "func": "msg.topic='team12/db/models';msg.payload=Array.isArray(msg.payload)?msg.payload:[];return msg;",
+    "x": 970,
+    "y": 1180,
+    "wires": [
+      [
+        "fn_overview"
+      ]
+    ]
+  },
+  {
+    "id": "in_b_raw",
+    "type": "mqtt in",
+    "z": "team12_tab",
+    "name": "Company B real one-minute records",
+    "topic": "team12/observed_b/machine/#",
+    "qos": "1",
+    "datatype": "json",
+    "broker": "mqtt_broker",
+    "x": 150,
+    "y": 1550,
+    "wires": [
+      [
+        "fn_b_validate"
+      ]
+    ]
+  },
+  {
+    "id": "fn_b_validate",
+    "type": "function",
+    "z": "team12_tab",
+    "name": "validate and store Company B",
+    "func": "const m=msg.payload;\nlet reason=null;\nconst states=['Alarm','Standby','MachineOn','Production','Loading','Tooling'];\nif(!m||typeof m!=='object'||Array.isArray(m)) reason='B payload not an object';\nelse if(!Number.isInteger(m.asset)) reason='B asset not an integer';\nelse if(typeof m.ts_dataset!=='string'||!Number.isFinite(Date.parse(m.ts_dataset))||typeof m.ts_replay!=='string'||!Number.isFinite(Date.parse(m.ts_replay))) reason='B timestamp invalid';\nelse if(!states.includes(m.status)) reason='B status not documented';\nelse if(m.source!=='observed_b'||m.company!=='B') reason='B source mismatch';\nif(reason) return [null,{topic:'INSERT INTO rejected_records (ts_replay,topic,reason,raw_payload) VALUES ($ts,$topic,$reason,$raw)',params:{$ts:new Date().toISOString(),$topic:msg.topic,$reason:reason,$raw:JSON.stringify(m)}}];\nreturn [{topic:'INSERT OR IGNORE INTO company_b_events (source,run_id,seq,asset,ts_dataset,ts_replay,status,power_avg,alarm_time,loading_time,tooling_time,maintenance_time,support_time) VALUES ($source,$run,$seq,$asset,$tsd,$tsr,$status,$power,$alarm,$loading,$tooling,$maintenance,$support)',validated_payload:m,params:{$source:'observed_b',$run:m.run_id,$seq:m.seq,$asset:m.asset,$tsd:m.ts_dataset,$tsr:m.ts_replay,$status:m.status,$power:Number.isFinite(m.power_avg)?m.power_avg:null,$alarm:m.alarm_time,$loading:m.loading_time,$tooling:m.tooling_time,$maintenance:m.maintenance_time,$support:m.support_time}},null];",
+    "outputs": 2,
+    "x": 430,
+    "y": 1550,
+    "wires": [
+      [
+        "sql_bind"
+      ],
+      [
+        "sql_bind"
+      ]
+    ]
+  },
+  {
+    "id": "db_b_events",
+    "type": "sqlite",
+    "z": "team12_tab",
+    "mydb": "sqlite_db",
+    "sqlquery": "msg.topic",
+    "sql": "",
+    "name": "SQLite Company B events",
+    "x": 790,
+    "y": 1550,
+    "wires": [
+      [
+        "fn_b_publish"
+      ]
+    ]
+  },
+  {
+    "id": "fn_b_publish",
+    "type": "function",
+    "z": "team12_tab",
+    "name": "publish B only after SQLite success",
+    "func": "const m=msg.validated_payload;\nif(!m)return null;\nreturn {topic:'team12/observed_b/validated/'+m.asset,payload:JSON.stringify(m)};",
+    "outputs": 1,
+    "x": 430,
+    "y": 1550,
+    "wires": [
+      [
+        "out_b_validated"
+      ]
+    ]
+  },
+  {
+    "id": "out_b_validated",
+    "type": "mqtt out",
+    "z": "team12_tab",
+    "name": "stored B records to analytics",
+    "topic": "",
+    "qos": "0",
+    "retain": "false",
+    "respTopic": "",
+    "contentType": "",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "mqtt_broker",
+    "x": 1060,
+    "y": 1550,
+    "wires": []
+  },
+  {
+    "id": "in_b_metrics",
+    "type": "mqtt in",
+    "z": "team12_tab",
+    "name": "Company B rolling state metrics",
+    "topic": "team12/observed_b/metrics/#",
+    "qos": "0",
+    "datatype": "json",
+    "broker": "mqtt_broker",
+    "x": 150,
+    "y": 1610,
+    "wires": [
+      [
+        "fn_b_store_metrics",
+        "fn_overview"
+      ]
+    ]
+  },
+  {
+    "id": "fn_b_store_metrics",
+    "type": "function",
+    "z": "team12_tab",
+    "name": "save B rolling metrics",
+    "func": "const p=msg.payload;\nreturn {topic:'INSERT INTO company_b_metrics (asset,ts_dataset,ts_replay,latest_status,reports_30m,production_share,alarm_share,conditional_alarm_pct) VALUES ($a,$tsd,$tsr,$status,$n,$prod,$alarm,$conditional)',params:{$a:p.asset,$tsd:p.ts_dataset,$tsr:p.ts_replay,$status:p.latest_status,$n:p.reports_30m,$prod:p.production_share,$alarm:p.alarm_share,$conditional:p.conditional_alarm_pct}};",
+    "outputs": 1,
+    "x": 430,
+    "y": 1610,
+    "wires": [
+      [
+        "sql_bind"
+      ]
+    ]
+  },
+  {
+    "id": "db_b_recent",
+    "type": "sqlite",
+    "z": "team12_tab",
+    "mydb": "sqlite_db",
+    "sqlquery": "msg.topic",
+    "sql": "",
+    "name": "SQLite recent B records",
+    "x": 730,
+    "y": 1220,
+    "wires": [
+      [
+        "fn_db_b_recent"
+      ]
+    ]
+  },
+  {
+    "id": "fn_db_b_recent",
+    "type": "function",
+    "z": "team12_tab",
+    "name": "format stored B rows",
+    "func": "msg.topic='team12/db/b-recent';msg.payload=Array.isArray(msg.payload)?msg.payload:[];return msg;",
+    "outputs": 1,
+    "x": 430,
+    "y": 1220,
+    "wires": [
+      [
+        "fn_overview"
+      ]
+    ]
+  },
+  {
+    "id": "in_b_forecast",
+    "type": "mqtt in",
+    "z": "team12_tab",
+    "name": "Company B next-state forecast",
+    "topic": "team12/observed_b/forecast/#",
+    "qos": "0",
+    "datatype": "json",
+    "broker": "mqtt_broker",
+    "x": 155,
+    "y": 1670,
+    "wires": [
+      [
+        "fn_b_forecast_sql",
+        "fn_overview"
+      ]
+    ]
+  },
+  {
+    "id": "fn_b_forecast_sql",
+    "type": "function",
+    "z": "team12_tab",
+    "name": "save B forecast",
+    "x": 430,
+    "y": 1670,
+    "outputs": 1,
+    "func": "const p=msg.payload;\nreturn {topic:'INSERT INTO company_b_forecasts (asset,ts_dataset,ts_replay,current_status,predicted_next_status,model,condition) VALUES ($a,$tsd,$tsr,$current,$next,$model,$condition)',params:{$a:p.asset,$tsd:p.ts_dataset,$tsr:p.ts_replay,$current:p.current_status,$next:p.predicted_next_status,$model:p.model,$condition:p.condition}};",
+    "wires": [
+      [
+        "sql_bind"
+      ]
+    ]
+  },
+  {
+    "id": "in_replay_status",
+    "type": "mqtt in",
+    "z": "team12_tab",
+    "name": "device A/B replay status",
+    "topic": "team12/replay/status",
+    "qos": "0",
+    "datatype": "json",
+    "broker": "mqtt_broker",
+    "x": 140,
+    "y": 1510,
+    "wires": [
+      [
+        "fn_overview"
+      ]
+    ]
+  }
+]

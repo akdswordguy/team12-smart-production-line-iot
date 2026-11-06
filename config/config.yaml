@@ -1,0 +1,261 @@
+# =============================================================================
+# Team 12 - main thresholds, rates, sources and model settings.
+#
+# If an evaluator asks you to change a threshold, a rate, a machine or a
+# horizon, change it HERE. No other file needs editing.
+# Every service re-reads this file when it starts, so: edit -> restart that
+# one service -> the change is live.
+# =============================================================================
+
+mqtt:
+  host: "localhost"
+  port: 1883
+  client_prefix: "team12"
+
+
+# -----------------------------------------------------------------------------
+# MQTT topics. Keep the names; the Node-RED flow subscribes to these.
+# "observed/..." = real dataset.  "sim/..." = virtual line.  Never mix them.
+# -----------------------------------------------------------------------------
+topics:
+  observed_machine: "team12/observed/machine"
+  observed_validated: "team12/observed/validated" # + /<asset> after Node-RED SQLite success   # + /<asset>  raw replayed record
+  observed_metrics: "team12/observed/metrics"   # + /<asset>  rolling indicators
+  observed_alert:   "team12/observed/alert"     #             machine alerts
+  forecast:         "team12/forecast"           # + /<asset>  ML prediction
+  forecast_advisory: "team12/decision/forecast_advisory"  # ML-informed recommendation
+  sim_state:        "team12/sim/state"          #             virtual line state
+  sim_alert:        "team12/sim/alert"          #             virtual bottleneck
+  sim_command:      "team12/sim/command"        #  decision -> actuator
+  sim_ack:          "team12/sim/ack"            #  actuator -> everyone
+  sim_proposal:     "team12/sim/proposal"       #  proposed virtual action
+  sim_approval:     "team12/sim/approval"       #  operator accept/reject
+  sim_review:       "team12/sim/review"         #  approval outcome
+  ml_train_request: "team12/ml/train/request"   #  dashboard -> trainer
+  ml_train_result:  "team12/ml/train/result"    #  trainer -> dashboard
+  ml_select:        "team12/ml/select"          #  dashboard -> analytics
+  ml_active:        "team12/ml/active"          #  analytics -> dashboard
+  company_b_raw:    "team12/observed_b/machine" # + /<asset> fixed B replay
+  company_b_validated: "team12/observed_b/validated" # + /<asset> after SQLite
+  company_b_metrics: "team12/observed_b/metrics" # + /<asset> status indicators
+  company_b_forecast: "team12/observed_b/forecast" # + /<asset> next reported state
+  replay_control:   "team12/replay/control"    # dashboard -> device, start A or B
+  replay_status:    "team12/replay/status"     # device -> dashboard, per-company state
+
+
+# -----------------------------------------------------------------------------
+# REPLAY - which slice of the real dataset we stream during the demo.
+# Chosen by src/audit.py: all three machines report >=90% of expected records.
+# -----------------------------------------------------------------------------
+replay:
+  assets: [0, 1, 8]
+  start: "2022-03-28 04:00:00+00:00"
+  end:   "2022-03-28 08:00:00+00:00"
+
+  # How fast to replay. 60 = one dataset minute per wall-clock second,
+  # so a 4-hour slice finishes in 4 minutes. Set to 1 for real time.
+  speed: 60
+
+  # Publish this many records then stop (0 = no limit). Handy for a quick test.
+  max_records: 0
+
+
+# -----------------------------------------------------------------------------
+# CLEANING - rules applied to a COPY. data/raw/*.csv is never modified.
+# -----------------------------------------------------------------------------
+cleaning:
+  # Any power_avg above this is treated as a sensor fault and flagged,
+  # not deleted. The raw file contains a value of 16777216 (= 2^24).
+  power_sanity_limit_kw: 2000
+
+  # The dataset's real reporting interval (audit measured 300 s).
+  slot_seconds: 300
+
+  # Which year(s) to use for model training and baselines.
+  train_from: "2022-01-01"
+
+
+# -----------------------------------------------------------------------------
+# MACHINE MONITORING - how we decide a real machine is under-performing.
+# Each machine is compared with ITS OWN history at the SAME hour of day,
+# never with another machine (they make different products).
+# -----------------------------------------------------------------------------
+monitoring:
+  # Size of the rolling window used for the live indicators, in slots.
+  # 6 slots x 5 min = 30 minutes.
+  rolling_slots: 6
+
+  # Alert when the rolling item count drops below this fraction of the
+  # machine's own baseline for that hour of day. 0.6 = "40% below normal".
+  low_output_ratio: 0.60
+
+  # ...and only after it has stayed low for this many consecutive slots.
+  # This is what makes the alert "sustained" rather than jumpy.
+  sustained_slots: 3
+
+  # Alert when the share of records in alarm state exceeds this.
+  high_alarm_share: 0.30
+
+  # If fewer than this fraction of expected records arrived, we say
+  # "insufficient data" instead of raising a false alert.
+  min_coverage: 0.50
+
+  # An hour-of-day baseline is only trusted if it was built from at least
+  # this many historical slots. Below it we fall back to the machine's
+  # overall baseline, so a rarely-used hour cannot trigger nonsense alerts.
+  min_baseline_slots: 20
+  # Forecast advisory compares predicted next-30-min count with six normal
+  # productive slots, only when the recent window is itself productive.
+  forecast_low_ratio: 0.60
+
+
+# -----------------------------------------------------------------------------
+# VIRTUAL LINE - the simulated 3-stage production line.
+#
+# THIS IS A SIMULATION. Nothing here is measured from the factory.
+# Starting rates are calibrated from the cleaned Company A output windows
+# (see results/calibration.json) and then rounded to readable numbers.
+#
+# Assumption: each stage is a SINGLE SERVER - it works on ONE token at a
+# time. Queues between stages are unbounded, so a slow stage starves the
+# stage after it and grows a queue in front of itself.
+# -----------------------------------------------------------------------------
+simulation:
+  # Random seed. The same seed gives the same arrivals every run, which is
+  # what makes the "with action" vs "without action" comparison fair.
+  seed: 42
+
+  # How long one simulated run lasts, in simulated seconds. 28800 = 8 hours,
+  # roughly one factory shift.
+  duration_seconds: 28800
+
+  # How many seconds of simulated time pass per wall-clock second in the
+  # live demo. 240 = the 8-hour run takes 2 wall-clock minutes.
+  speed: 240
+
+  # Tokens arriving at stage 1, per minute (Poisson).
+  # Deliberately below every stage rate, so a HEALTHY line is stable and
+  # queues stay short until we break something.
+  arrival_rate_per_min: 0.50
+
+  # busy_share and starved_share are measured over the last N simulated
+  # seconds, NOT since the start of the run. 900 = the last 15 minutes.
+  # Raise it for steadier numbers, lower it for faster reaction.
+  metrics_window_seconds: 900
+
+  # Stage rates come from results/calibration.json (capacity_proxy_used),
+  # which is the p90 items/min of machines 0, 1 and 8 while producing.
+  # Assigning those machines to stages 1/2/3 in this order is OUR assumption:
+  # the dataset contains no routing information.
+  stages:
+    - name: "Stage 1 - Cutting"     # calibrated from machine 0
+      rate_per_min: 0.80            # tokens this stage can finish per minute
+    - name: "Stage 2 - Welding"     # calibrated from machine 1
+      rate_per_min: 0.80
+    - name: "Stage 3 - Finishing"   # calibrated from machine 8
+      rate_per_min: 0.60
+
+  # ---- Scenario injected during the demo -------------------------------------
+  scenario:
+    # "none"     = everything healthy
+    # "slowdown" = one stage gradually loses capacity (capacity constraint)
+    # "alarm"    = one stage stops completely for a while (interruption)
+    kind: "slowdown"
+    stage_index: 1            # 0-based. 1 = Stage 2 - Welding
+    start_second: 7200        # when the problem begins (2 hours in)
+    # slowdown: multiply that stage's rate by this.
+    # 0.45 takes Stage 2 from 0.80 to 0.36 tokens/min, BELOW the 0.50
+    # arrival rate - so its queue grows without limit. That is a
+    # capacity constraint, and it is the bottleneck we expect to detect.
+    severity: 0.45
+    # alarm: how long the stage is completely down, in simulated seconds
+    alarm_duration_seconds: 3600
+
+
+# -----------------------------------------------------------------------------
+# DECISION ENGINE - when to act on the virtual line, and how far it may go.
+# Bounded on purpose: the engine can never "fix" the line by making a stage
+# infinitely fast.
+# -----------------------------------------------------------------------------
+decision:
+  # A stage is a bottleneck candidate when it is busy at least this much...
+  busy_share_threshold: 0.90
+
+  # ...and the queue in front of it is at least this long...
+  queue_threshold: 5
+
+  # ...and that queue is GROWING, not just briefly long.
+  # A healthy stage can be busy with a few tokens waiting and then catch up.
+  # A real capacity constraint never catches up. Set this to false to see
+  # the engine "fix" a healthy line - a good thing to demonstrate.
+  require_queue_growth: true
+
+  # ...and both have held for this many consecutive checks.
+  sustained_checks: 3
+
+  # Ignore the first N simulated seconds. When the line starts up, every
+  # queue grows from empty - that is the line filling, not a bottleneck.
+  # Without this the engine "fixes" a healthy line in the first few minutes.
+  warmup_seconds: 3600
+
+  # How often the engine looks at the line, in simulated seconds.
+  check_every_seconds: 300
+
+  # The action: raise that stage's rate by this fraction.
+  rate_increase: 0.10
+
+  # Hard ceiling - the engine may never raise a stage above this multiple of
+  # its configured starting rate. Keeps the action honest and bounded.
+  max_rate_multiplier: 1.50
+
+  # Maximum number of commands in a single run.
+  max_commands: 6
+
+  # Wait this long after a command before considering another one,
+  # so we measure the effect instead of over-correcting.
+  cooldown_seconds: 1800
+
+
+# -----------------------------------------------------------------------------
+# MACHINE LEARNING - forecast the next 30 minutes of item count.
+# -----------------------------------------------------------------------------
+ml:
+  # Predict the total items in the next N minutes.
+  horizon_minutes: 30
+
+  # How many past 5-minute slots are fed in as history.
+  lookback_slots: 6
+
+  # Chronological split. No shuffling: train is the earliest period,
+  # test is the latest, so we never train on the future.
+  train_fraction: 0.70
+  valid_fraction: 0.15
+  # test is whatever is left (0.15)
+
+  # Which machines to train on. [] means all of them.
+  assets: []
+
+  # How many rolling-origin folds decide which model wins.
+  # Each fold trains on an expanding prefix of the pre-test period and
+  # scores the stretch of time right after it, always forwards. More folds
+  # = a steadier comparison but a longer training run. Set to 1 to fall
+  # back to a single validation block.
+  cv_folds: 4
+
+  # Two models count as tied when their fold-mean scores are within this
+  # fraction of each other; the smaller saved model then wins, because the
+  # live service has to load it. Raise it to favour small models more.
+  selection_tie_margin: 0.02
+
+  random_state: 42
+
+
+paths:
+  raw_company_a: "data/raw/company_A.csv"
+  clean_events: "data/processed/events_clean.csv"
+  replay_slice: "data/processed/replay_slice.csv"
+  baseline: "data/processed/baseline.json"
+  features: "data/processed/features.csv"
+  model: "results/chosen_model.joblib"
+  sqlite: "db/team12.db"
+

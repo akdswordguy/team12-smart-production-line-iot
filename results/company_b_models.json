@@ -1,0 +1,93 @@
+{
+  "task": "next operating state after exactly one minute of continuous reporting",
+  "source": "fixed Company B ZIP, before 2022-03-28 replay",
+  "features": [
+    "power_log",
+    "hour",
+    "dayofweek",
+    "status_Alarm",
+    "status_Standby",
+    "status_MachineOn",
+    "status_Production",
+    "status_Loading",
+    "status_Tooling",
+    "asset_0",
+    "asset_1",
+    "asset_2",
+    "asset_3",
+    "asset_4",
+    "asset_5",
+    "asset_6",
+    "asset_7",
+    "asset_8",
+    "asset_9",
+    "asset_10",
+    "asset_11",
+    "asset_12",
+    "asset_13",
+    "asset_14",
+    "asset_15",
+    "asset_16",
+    "asset_17"
+  ],
+  "train_rows": 102326,
+  "validation_rows": 22279,
+  "test_rows": 25383,
+  "train_period": [
+    "2022-02-27 18:54:00+00:00",
+    "2022-03-15 15:33:00+00:00"
+  ],
+  "validation_period": [
+    "2022-03-15 15:35:00+00:00",
+    "2022-03-22 06:22:00+00:00"
+  ],
+  "test_period": [
+    "2022-03-22 06:24:00+00:00",
+    "2022-03-25 16:00:00+00:00"
+  ],
+  "baseline_persistence_validation": {
+    "macro_f1": 0.9581,
+    "balanced_accuracy": 0.9574,
+    "accuracy": 0.9636
+  },
+  "baseline_persistence_test": {
+    "macro_f1": 0.9479,
+    "balanced_accuracy": 0.9478,
+    "accuracy": 0.9698
+  },
+  "candidates": {
+    "logistic_regression": {
+      "family": "traditional",
+      "validation": {
+        "macro_f1": 0.9161,
+        "balanced_accuracy": 0.9342,
+        "accuracy": 0.9114
+      },
+      "training_seconds": 1.21
+    },
+    "gradient_boosting": {
+      "family": "ensemble",
+      "validation": {
+        "macro_f1": 0.962,
+        "balanced_accuracy": 0.9624,
+        "accuracy": 0.967
+      },
+      "training_seconds": 2.69
+    },
+    "neural_network": {
+      "family": "neural",
+      "validation": {
+        "macro_f1": 0.9607,
+        "balanced_accuracy": 0.9616,
+        "accuracy": 0.9658
+      },
+      "training_seconds": 3.19
+    }
+  },
+  "selected": "gradient_boosting",
+  "selected_test": {
+    "macro_f1": 0.9406,
+    "balanced_accuracy": 0.9304,
+    "accuracy": 0.9723
+  }
+}

@@ -1,0 +1,711 @@
+{
+  "examples": 681935,
+  "features": 45,
+  "split": {
+    "train_rows": 487520,
+    "valid_rows": 91338,
+    "test_rows": 102992,
+    "train_period": [
+      "2022-01-01 00:30:00+00:00",
+      "2022-07-27 21:05:00+00:00"
+    ],
+    "valid_period": [
+      "2022-07-27 21:35:00+00:00",
+      "2022-09-13 21:05:00+00:00"
+    ],
+    "test_period": [
+      "2022-09-13 21:35:00+00:00",
+      "2022-10-27 12:30:00+00:00"
+    ],
+    "zero_share_train": 0.327,
+    "zero_share_valid": 0.755,
+    "zero_share_test": 0.807
+  },
+  "cross_validation": {
+    "folds": 4,
+    "scheme": "expanding-window rolling origin",
+    "metric": "active MAE",
+    "scores": {
+      "ridge": {
+        "per_fold": [
+          2.2308,
+          2.0012,
+          1.8862,
+          1.9207
+        ],
+        "mean": 2.0097,
+        "worst": 2.2308,
+        "folds": 4
+      },
+      "gradient_boosting": {
+        "per_fold": [
+          2.139,
+          1.693,
+          1.5561,
+          1.5679
+        ],
+        "mean": 1.739,
+        "worst": 2.139,
+        "folds": 4
+      },
+      "neural_network": {
+        "per_fold": [
+          2.0721,
+          1.6705,
+          1.6612,
+          1.6531
+        ],
+        "mean": 1.7642,
+        "worst": 2.0721,
+        "folds": 4
+      }
+    },
+    "winner_swept_all_folds": false,
+    "margin_over_runner_up_percent": 1.45,
+    "recent_fold_margin_over_runner_up_percent": 5.43,
+    "runner_up": "neural_network",
+    "tie_margin": 0.02
+  },
+  "chosen_model": "gradient_boosting",
+  "chosen_on": "mean active MAE over 4 rolling-origin validation folds; smaller model wins inside 2%",
+  "deployed_model_trained_on": "all pre-test data (train + validation)",
+  "chosen_beats_persistence_on_test_active": true,
+  "chosen_beats_persistence_on_test_overall": true,
+  "results": {
+    "baseline_always_zero": {
+      "kind": "baseline",
+      "family": "reference",
+      "description": "always predict zero",
+      "valid_mae": 7.132,
+      "valid_rmse": 15.722,
+      "valid_active": {
+        "mae": 29.085,
+        "rmse": 31.75,
+        "n": 22397
+      },
+      "valid_idle": {
+        "mae": 0.0,
+        "over_1_item_share": 0.0,
+        "n": 68941
+      },
+      "train_seconds": 0.0,
+      "predict_ms_per_1000": 0.0,
+      "model_size_mb": 0.0,
+      "test_mae": 6.187,
+      "test_rmse": 16.05,
+      "active": {
+        "mae": 32.141,
+        "rmse": 36.581,
+        "n": 19826
+      },
+      "idle": {
+        "mae": 0.0,
+        "over_1_item_share": 0.0,
+        "n": 83166
+      },
+      "per_machine": {
+        "0": {
+          "mae": 1.845,
+          "rmse": 5.961,
+          "n": 12136,
+          "mean_actual": 1.845
+        },
+        "1": {
+          "mae": 0.677,
+          "rmse": 3.5,
+          "n": 12244,
+          "mean_actual": 0.677
+        },
+        "2": {
+          "mae": 8.561,
+          "rmse": 18.085,
+          "n": 12275,
+          "mean_actual": 8.561
+        },
+        "3": {
+          "mae": 9.853,
+          "rmse": 19.64,
+          "n": 12136,
+          "mean_actual": 9.853
+        },
+        "4": {
+          "mae": 17.385,
+          "rmse": 33.142,
+          "n": 12347,
+          "mean_actual": 17.385
+        },
+        "5": {
+          "mae": 10.48,
+          "rmse": 16.678,
+          "n": 5978,
+          "mean_actual": 10.48
+        },
+        "6": {
+          "mae": 0.982,
+          "rmse": 4.124,
+          "n": 12258,
+          "mean_actual": 0.982
+        },
+        "7": {
+          "mae": 4.259,
+          "rmse": 9.452,
+          "n": 12400,
+          "mean_actual": 4.259
+        },
+        "8": {
+          "mae": 3.541,
+          "rmse": 7.965,
+          "n": 11218,
+          "mean_actual": 3.541
+        }
+      }
+    },
+    "baseline_persistence": {
+      "kind": "baseline",
+      "family": "reference",
+      "description": "repeat the last 30 minutes",
+      "valid_mae": 0.613,
+      "valid_rmse": 3.17,
+      "valid_active": {
+        "mae": 2.067,
+        "rmse": 5.429,
+        "n": 22397
+      },
+      "valid_idle": {
+        "mae": 0.141,
+        "over_1_item_share": 0.0082,
+        "n": 68941
+      },
+      "train_seconds": 0.0,
+      "predict_ms_per_1000": 0.0,
+      "model_size_mb": 0.0,
+      "test_mae": 0.761,
+      "test_rmse": 4.161,
+      "active": {
+        "mae": 3.109,
+        "rmse": 7.89,
+        "n": 19826
+      },
+      "idle": {
+        "mae": 0.201,
+        "over_1_item_share": 0.0103,
+        "n": 83166
+      },
+      "per_machine": {
+        "0": {
+          "mae": 0.309,
+          "rmse": 1.694,
+          "n": 12136,
+          "mean_actual": 1.845
+        },
+        "1": {
+          "mae": 0.153,
+          "rmse": 1.279,
+          "n": 12244,
+          "mean_actual": 0.677
+        },
+        "2": {
+          "mae": 1.225,
+          "rmse": 4.864,
+          "n": 12275,
+          "mean_actual": 8.561
+        },
+        "3": {
+          "mae": 1.417,
+          "rmse": 5.949,
+          "n": 12136,
+          "mean_actual": 9.853
+        },
+        "4": {
+          "mae": 1.735,
+          "rmse": 8.104,
+          "n": 12347,
+          "mean_actual": 17.385
+        },
+        "5": {
+          "mae": 0.958,
+          "rmse": 3.414,
+          "n": 5978,
+          "mean_actual": 10.48
+        },
+        "6": {
+          "mae": 0.167,
+          "rmse": 1.271,
+          "n": 12258,
+          "mean_actual": 0.982
+        },
+        "7": {
+          "mae": 0.5,
+          "rmse": 2.276,
+          "n": 12400,
+          "mean_actual": 4.259
+        },
+        "8": {
+          "mae": 0.457,
+          "rmse": 1.982,
+          "n": 11218,
+          "mean_actual": 3.541
+        }
+      }
+    },
+    "baseline_machine_hour": {
+      "kind": "baseline",
+      "family": "reference",
+      "description": "training-period machine/hour mean",
+      "valid_mae": 13.826,
+      "valid_rmse": 16.963,
+      "valid_active": {
+        "mae": 7.09,
+        "rmse": 9.321,
+        "n": 22397
+      },
+      "valid_idle": {
+        "mae": 16.015,
+        "over_1_item_share": 1.0,
+        "n": 68941
+      },
+      "train_seconds": 0.0,
+      "predict_ms_per_1000": 0.0,
+      "model_size_mb": 0.0,
+      "test_mae": 17.248,
+      "test_rmse": 20.617,
+      "active": {
+        "mae": 9.877,
+        "rmse": 12.516,
+        "n": 19826
+      },
+      "idle": {
+        "mae": 19.005,
+        "over_1_item_share": 1.0,
+        "n": 83166
+      },
+      "per_machine": {
+        "0": {
+          "mae": 11.799,
+          "rmse": 11.955,
+          "n": 12136,
+          "mean_actual": 1.845
+        },
+        "1": {
+          "mae": 11.566,
+          "rmse": 11.629,
+          "n": 12244,
+          "mean_actual": 0.677
+        },
+        "2": {
+          "mae": 23.918,
+          "rmse": 25.254,
+          "n": 12275,
+          "mean_actual": 8.561
+        },
+        "3": {
+          "mae": 23.018,
+          "rmse": 24.541,
+          "n": 12136,
+          "mean_actual": 9.853
+        },
+        "4": {
+          "mae": 36.873,
+          "rmse": 39.234,
+          "n": 12347,
+          "mean_actual": 17.385
+        },
+        "5": {
+          "mae": 15.063,
+          "rmse": 17.154,
+          "n": 5978,
+          "mean_actual": 10.48
+        },
+        "6": {
+          "mae": 6.632,
+          "rmse": 6.735,
+          "n": 12258,
+          "mean_actual": 0.982
+        },
+        "7": {
+          "mae": 12.644,
+          "rmse": 13.049,
+          "n": 12400,
+          "mean_actual": 4.259
+        },
+        "8": {
+          "mae": 12.057,
+          "rmse": 12.726,
+          "n": 11218,
+          "mean_actual": 3.541
+        }
+      }
+    },
+    "ridge": {
+      "kind": "model",
+      "family": "traditional ML",
+      "description": "regularized linear regression; alpha=10.0",
+      "valid_mae": 1.026,
+      "valid_rmse": 2.834,
+      "valid_active": {
+        "mae": 2.007,
+        "rmse": 4.839,
+        "n": 22397
+      },
+      "valid_idle": {
+        "mae": 0.708,
+        "over_1_item_share": 0.2167,
+        "n": 68941
+      },
+      "train_seconds": 0.63,
+      "predict_ms_per_1000": 0.4,
+      "model_size_mb": 0.002,
+      "cv_active_mae": {
+        "per_fold": [
+          2.2308,
+          2.0012,
+          1.8862,
+          1.9207
+        ],
+        "mean": 2.0097,
+        "worst": 2.2308,
+        "folds": 4
+      },
+      "test_mae": 1.38,
+      "test_rmse": 3.752,
+      "active": {
+        "mae": 2.936,
+        "rmse": 7.073,
+        "n": 19826
+      },
+      "idle": {
+        "mae": 1.009,
+        "over_1_item_share": 0.3699,
+        "n": 83166
+      },
+      "per_machine": {
+        "0": {
+          "mae": 0.544,
+          "rmse": 1.533,
+          "n": 12136,
+          "mean_actual": 1.845
+        },
+        "1": {
+          "mae": 0.574,
+          "rmse": 1.191,
+          "n": 12244,
+          "mean_actual": 0.677
+        },
+        "2": {
+          "mae": 2.267,
+          "rmse": 4.405,
+          "n": 12275,
+          "mean_actual": 8.561
+        },
+        "3": {
+          "mae": 2.268,
+          "rmse": 5.251,
+          "n": 12136,
+          "mean_actual": 9.853
+        },
+        "4": {
+          "mae": 3.192,
+          "rmse": 7.377,
+          "n": 12347,
+          "mean_actual": 17.385
+        },
+        "5": {
+          "mae": 1.542,
+          "rmse": 3.049,
+          "n": 5978,
+          "mean_actual": 10.48
+        },
+        "6": {
+          "mae": 0.365,
+          "rmse": 1.125,
+          "n": 12258,
+          "mean_actual": 0.982
+        },
+        "7": {
+          "mae": 1.056,
+          "rmse": 2.067,
+          "n": 12400,
+          "mean_actual": 4.259
+        },
+        "8": {
+          "mae": 0.616,
+          "rmse": 1.78,
+          "n": 11218,
+          "mean_actual": 3.541
+        }
+      }
+    },
+    "gradient_boosting": {
+      "kind": "model",
+      "family": "ensemble ML",
+      "description": "histogram gradient-boosted trees; 300 rounds",
+      "valid_mae": 0.626,
+      "valid_rmse": 2.367,
+      "valid_active": {
+        "mae": 1.698,
+        "rmse": 4.208,
+        "n": 22397
+      },
+      "valid_idle": {
+        "mae": 0.278,
+        "over_1_item_share": 0.0418,
+        "n": 68941
+      },
+      "train_seconds": 14.38,
+      "predict_ms_per_1000": 13.37,
+      "model_size_mb": 1.042,
+      "cv_active_mae": {
+        "per_fold": [
+          2.139,
+          1.693,
+          1.5561,
+          1.5679
+        ],
+        "mean": 1.739,
+        "worst": 2.139,
+        "folds": 4
+      },
+      "test_mae": 0.767,
+      "test_rmse": 3.048,
+      "active": {
+        "mae": 2.346,
+        "rmse": 5.947,
+        "n": 19826
+      },
+      "idle": {
+        "mae": 0.39,
+        "over_1_item_share": 0.0676,
+        "n": 83166
+      },
+      "per_machine": {
+        "0": {
+          "mae": 0.268,
+          "rmse": 1.3,
+          "n": 12136,
+          "mean_actual": 1.845
+        },
+        "1": {
+          "mae": 0.265,
+          "rmse": 1.036,
+          "n": 12244,
+          "mean_actual": 0.677
+        },
+        "2": {
+          "mae": 1.35,
+          "rmse": 3.709,
+          "n": 12275,
+          "mean_actual": 8.561
+        },
+        "3": {
+          "mae": 1.142,
+          "rmse": 4.154,
+          "n": 12136,
+          "mean_actual": 9.853
+        },
+        "4": {
+          "mae": 1.738,
+          "rmse": 5.936,
+          "n": 12347,
+          "mean_actual": 17.385
+        },
+        "5": {
+          "mae": 1.035,
+          "rmse": 2.501,
+          "n": 5978,
+          "mean_actual": 10.48
+        },
+        "6": {
+          "mae": 0.148,
+          "rmse": 0.94,
+          "n": 12258,
+          "mean_actual": 0.982
+        },
+        "7": {
+          "mae": 0.568,
+          "rmse": 1.755,
+          "n": 12400,
+          "mean_actual": 4.259
+        },
+        "8": {
+          "mae": 0.492,
+          "rmse": 1.448,
+          "n": 11218,
+          "mean_actual": 3.541
+        }
+      }
+    },
+    "neural_network": {
+      "kind": "model",
+      "family": "deep learning",
+      "description": "feed-forward neural network; two ReLU hidden layers of 32 and 16 units",
+      "valid_mae": 0.655,
+      "valid_rmse": 2.55,
+      "valid_active": {
+        "mae": 1.735,
+        "rmse": 4.344,
+        "n": 22397
+      },
+      "valid_idle": {
+        "mae": 0.304,
+        "over_1_item_share": 0.0602,
+        "n": 68941
+      },
+      "train_seconds": 56.82,
+      "predict_ms_per_1000": 1.04,
+      "model_size_mb": 0.071,
+      "cv_active_mae": {
+        "per_fold": [
+          2.0721,
+          1.6705,
+          1.6612,
+          1.6531
+        ],
+        "mean": 1.7642,
+        "worst": 2.0721,
+        "folds": 4
+      },
+      "test_mae": 0.879,
+      "test_rmse": 3.232,
+      "active": {
+        "mae": 2.392,
+        "rmse": 6.018,
+        "n": 19826
+      },
+      "idle": {
+        "mae": 0.519,
+        "over_1_item_share": 0.1378,
+        "n": 83166
+      },
+      "per_machine": {
+        "0": {
+          "mae": 0.25,
+          "rmse": 1.334,
+          "n": 12136,
+          "mean_actual": 1.845
+        },
+        "1": {
+          "mae": 0.21,
+          "rmse": 1.056,
+          "n": 12244,
+          "mean_actual": 0.677
+        },
+        "2": {
+          "mae": 2.098,
+          "rmse": 4.181,
+          "n": 12275,
+          "mean_actual": 8.561
+        },
+        "3": {
+          "mae": 1.197,
+          "rmse": 4.427,
+          "n": 12136,
+          "mean_actual": 9.853
+        },
+        "4": {
+          "mae": 1.81,
+          "rmse": 6.112,
+          "n": 12347,
+          "mean_actual": 17.385
+        },
+        "5": {
+          "mae": 1.104,
+          "rmse": 2.612,
+          "n": 5978,
+          "mean_actual": 10.48
+        },
+        "6": {
+          "mae": 0.151,
+          "rmse": 0.979,
+          "n": 12258,
+          "mean_actual": 0.982
+        },
+        "7": {
+          "mae": 0.626,
+          "rmse": 1.889,
+          "n": 12400,
+          "mean_actual": 4.259
+        },
+        "8": {
+          "mae": 0.546,
+          "rmse": 1.64,
+          "n": 11218,
+          "mean_actual": 3.541
+        }
+      }
+    },
+    "deployed_gradient_boosting": {
+      "kind": "deployed",
+      "family": "ensemble ML",
+      "description": "gradient_boosting refit on train+validation",
+      "model_size_mb": 1.041,
+      "test_mae": 0.748,
+      "test_rmse": 3.029,
+      "active": {
+        "mae": 2.338,
+        "rmse": 5.952,
+        "n": 19826
+      },
+      "idle": {
+        "mae": 0.369,
+        "over_1_item_share": 0.0611,
+        "n": 83166
+      },
+      "per_machine": {
+        "0": {
+          "mae": 0.249,
+          "rmse": 1.29,
+          "n": 12136,
+          "mean_actual": 1.845
+        },
+        "1": {
+          "mae": 0.252,
+          "rmse": 1.037,
+          "n": 12244,
+          "mean_actual": 0.677
+        },
+        "2": {
+          "mae": 1.38,
+          "rmse": 3.702,
+          "n": 12275,
+          "mean_actual": 8.561
+        },
+        "3": {
+          "mae": 1.123,
+          "rmse": 4.107,
+          "n": 12136,
+          "mean_actual": 9.853
+        },
+        "4": {
+          "mae": 1.668,
+          "rmse": 5.899,
+          "n": 12347,
+          "mean_actual": 17.385
+        },
+        "5": {
+          "mae": 0.952,
+          "rmse": 2.492,
+          "n": 5978,
+          "mean_actual": 10.48
+        },
+        "6": {
+          "mae": 0.155,
+          "rmse": 0.955,
+          "n": 12258,
+          "mean_actual": 0.982
+        },
+        "7": {
+          "mae": 0.542,
+          "rmse": 1.727,
+          "n": 12400,
+          "mean_actual": 4.259
+        },
+        "8": {
+          "mae": 0.49,
+          "rmse": 1.447,
+          "n": 11218,
+          "mean_actual": 3.541
+        }
+      }
+    }
+  }
+}

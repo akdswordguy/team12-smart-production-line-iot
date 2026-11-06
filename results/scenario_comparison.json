@@ -1,0 +1,354 @@
+[
+  {
+    "scenario": "healthy",
+    "scenario_config": {
+      "kind": "none",
+      "stage_index": 1,
+      "start_second": 0,
+      "severity": 1.0,
+      "alarm_duration_seconds": 0
+    },
+    "no_action": {
+      "completed": 223,
+      "throughput_per_hour": 27.88,
+      "avg_wait_seconds": 357.2,
+      "tokens_arrived": 229,
+      "stages": [
+        {
+          "name": "Stage 1 - Cutting",
+          "final_rate": 0.8,
+          "configured_rate": 0.8,
+          "queue_at_end": 0,
+          "busy_share": 0.482,
+          "starved_share": 0.518
+        },
+        {
+          "name": "Stage 2 - Welding",
+          "final_rate": 0.8,
+          "configured_rate": 0.8,
+          "queue_at_end": 1,
+          "busy_share": 0.739,
+          "starved_share": 0.261
+        },
+        {
+          "name": "Stage 3 - Finishing",
+          "final_rate": 0.6,
+          "configured_rate": 0.6,
+          "queue_at_end": 3,
+          "busy_share": 0.832,
+          "starved_share": 0.168
+        }
+      ],
+      "events": []
+    },
+    "with_action": {
+      "completed": 223,
+      "throughput_per_hour": 27.88,
+      "avg_wait_seconds": 357.2,
+      "tokens_arrived": 229,
+      "stages": [
+        {
+          "name": "Stage 1 - Cutting",
+          "final_rate": 0.8,
+          "configured_rate": 0.8,
+          "queue_at_end": 0,
+          "busy_share": 0.482,
+          "starved_share": 0.518
+        },
+        {
+          "name": "Stage 2 - Welding",
+          "final_rate": 0.8,
+          "configured_rate": 0.8,
+          "queue_at_end": 1,
+          "busy_share": 0.739,
+          "starved_share": 0.261
+        },
+        {
+          "name": "Stage 3 - Finishing",
+          "final_rate": 0.6,
+          "configured_rate": 0.6,
+          "queue_at_end": 3,
+          "busy_share": 0.832,
+          "starved_share": 0.168
+        }
+      ],
+      "events": []
+    },
+    "difference": {
+      "completed": 0,
+      "throughput_per_hour": 0.0,
+      "avg_wait_seconds": 0.0
+    },
+    "commands_sent": 0,
+    "advice_given": 0
+  },
+  {
+    "scenario": "slowdown",
+    "scenario_config": {
+      "kind": "slowdown",
+      "stage_index": 1,
+      "start_second": 7200,
+      "severity": 0.45,
+      "alarm_duration_seconds": 3600
+    },
+    "no_action": {
+      "completed": 202,
+      "throughput_per_hour": 25.25,
+      "avg_wait_seconds": 1805.1,
+      "tokens_arrived": 229,
+      "stages": [
+        {
+          "name": "Stage 1 - Cutting",
+          "final_rate": 0.8,
+          "configured_rate": 0.8,
+          "queue_at_end": 0,
+          "busy_share": 0.482,
+          "starved_share": 0.518
+        },
+        {
+          "name": "Stage 2 - Welding",
+          "final_rate": 0.36,
+          "configured_rate": 0.8,
+          "queue_at_end": 22,
+          "busy_share": 1.0,
+          "starved_share": 0.0
+        },
+        {
+          "name": "Stage 3 - Finishing",
+          "final_rate": 0.6,
+          "configured_rate": 0.6,
+          "queue_at_end": 3,
+          "busy_share": 1.0,
+          "starved_share": 0.0
+        }
+      ],
+      "events": [
+        {
+          "sim_second": 7200,
+          "type": "scenario",
+          "detail": "SCENARIO at t=7200s: Stage 2 - Welding slowed from 0.80 to 0.36 tokens/min"
+        }
+      ]
+    },
+    "with_action": {
+      "completed": 223,
+      "throughput_per_hour": 27.88,
+      "avg_wait_seconds": 829.4,
+      "tokens_arrived": 229,
+      "stages": [
+        {
+          "name": "Stage 1 - Cutting",
+          "final_rate": 0.8,
+          "configured_rate": 0.8,
+          "queue_at_end": 0,
+          "busy_share": 0.482,
+          "starved_share": 0.518
+        },
+        {
+          "name": "Stage 2 - Welding",
+          "final_rate": 0.581,
+          "configured_rate": 0.8,
+          "queue_at_end": 1,
+          "busy_share": 0.92,
+          "starved_share": 0.08
+        },
+        {
+          "name": "Stage 3 - Finishing",
+          "final_rate": 0.66,
+          "configured_rate": 0.6,
+          "queue_at_end": 3,
+          "busy_share": 0.7,
+          "starved_share": 0.3
+        }
+      ],
+      "events": [
+        {
+          "sim_second": 7200,
+          "type": "scenario",
+          "detail": "SCENARIO at t=7200s: Stage 2 - Welding slowed from 0.80 to 0.36 tokens/min"
+        },
+        {
+          "sim_second": 11401,
+          "type": "command",
+          "stage": "Stage 2 - Welding",
+          "old_rate": 0.36,
+          "new_rate": 0.396,
+          "reason": "Stage 2 - Welding is the limiting stage (busy 100%, queue 5, starved 0%, for 3 checks). Raising its rate by 10% to 0.40 tokens/min (ceiling 1.20).",
+          "ack": "accepted"
+        },
+        {
+          "sim_second": 13201,
+          "type": "command",
+          "stage": "Stage 2 - Welding",
+          "old_rate": 0.396,
+          "new_rate": 0.436,
+          "reason": "Stage 2 - Welding is the limiting stage (busy 100%, queue 8, starved 0%, for 4 checks). Raising its rate by 10% to 0.44 tokens/min (ceiling 1.20).",
+          "ack": "accepted"
+        },
+        {
+          "sim_second": 17701,
+          "type": "command",
+          "stage": "Stage 2 - Welding",
+          "old_rate": 0.436,
+          "new_rate": 0.48,
+          "reason": "Stage 2 - Welding is the limiting stage (busy 100%, queue 6, starved 0%, for 3 checks). Raising its rate by 10% to 0.48 tokens/min (ceiling 1.20).",
+          "ack": "accepted"
+        },
+        {
+          "sim_second": 19501,
+          "type": "command",
+          "stage": "Stage 2 - Welding",
+          "old_rate": 0.48,
+          "new_rate": 0.528,
+          "reason": "Stage 2 - Welding is the limiting stage (busy 100%, queue 12, starved 0%, for 3 checks). Raising its rate by 10% to 0.53 tokens/min (ceiling 1.20).",
+          "ack": "accepted"
+        },
+        {
+          "sim_second": 21301,
+          "type": "command",
+          "stage": "Stage 2 - Welding",
+          "old_rate": 0.528,
+          "new_rate": 0.581,
+          "reason": "Stage 2 - Welding is the limiting stage (busy 100%, queue 14, starved 0%, for 3 checks). Raising its rate by 10% to 0.58 tokens/min (ceiling 1.20).",
+          "ack": "accepted"
+        },
+        {
+          "sim_second": 24301,
+          "type": "command",
+          "stage": "Stage 3 - Finishing",
+          "old_rate": 0.6,
+          "new_rate": 0.66,
+          "reason": "Stage 3 - Finishing is the limiting stage (busy 100%, queue 5, starved 0%, for 3 checks). Raising its rate by 10% to 0.66 tokens/min (ceiling 0.90).",
+          "ack": "accepted"
+        }
+      ]
+    },
+    "difference": {
+      "completed": 21,
+      "throughput_per_hour": 2.63,
+      "avg_wait_seconds": -975.7
+    },
+    "commands_sent": 6,
+    "advice_given": 0
+  },
+  {
+    "scenario": "alarm",
+    "scenario_config": {
+      "kind": "alarm",
+      "stage_index": 1,
+      "start_second": 7200,
+      "severity": 0.45,
+      "alarm_duration_seconds": 3600
+    },
+    "no_action": {
+      "completed": 223,
+      "throughput_per_hour": 27.88,
+      "avg_wait_seconds": 1003.0,
+      "tokens_arrived": 229,
+      "stages": [
+        {
+          "name": "Stage 1 - Cutting",
+          "final_rate": 0.8,
+          "configured_rate": 0.8,
+          "queue_at_end": 0,
+          "busy_share": 0.482,
+          "starved_share": 0.518
+        },
+        {
+          "name": "Stage 2 - Welding",
+          "final_rate": 0.8,
+          "configured_rate": 0.8,
+          "queue_at_end": 1,
+          "busy_share": 0.739,
+          "starved_share": 0.261
+        },
+        {
+          "name": "Stage 3 - Finishing",
+          "final_rate": 0.6,
+          "configured_rate": 0.6,
+          "queue_at_end": 3,
+          "busy_share": 0.832,
+          "starved_share": 0.168
+        }
+      ],
+      "events": [
+        {
+          "sim_second": 7200,
+          "type": "scenario",
+          "detail": "SCENARIO at t=7200s: Stage 2 - Welding STOPPED until t=10800s (alarm)"
+        }
+      ]
+    },
+    "with_action": {
+      "completed": 224,
+      "throughput_per_hour": 28.0,
+      "avg_wait_seconds": 897.2,
+      "tokens_arrived": 229,
+      "stages": [
+        {
+          "name": "Stage 1 - Cutting",
+          "final_rate": 0.8,
+          "configured_rate": 0.8,
+          "queue_at_end": 0,
+          "busy_share": 0.482,
+          "starved_share": 0.518
+        },
+        {
+          "name": "Stage 2 - Welding",
+          "final_rate": 0.8,
+          "configured_rate": 0.8,
+          "queue_at_end": 1,
+          "busy_share": 0.739,
+          "starved_share": 0.261
+        },
+        {
+          "name": "Stage 3 - Finishing",
+          "final_rate": 0.726,
+          "configured_rate": 0.6,
+          "queue_at_end": 2,
+          "busy_share": 0.818,
+          "starved_share": 0.182
+        }
+      ],
+      "events": [
+        {
+          "sim_second": 7200,
+          "type": "scenario",
+          "detail": "SCENARIO at t=7200s: Stage 2 - Welding STOPPED until t=10800s (alarm)"
+        },
+        {
+          "sim_second": 7801,
+          "type": "advice",
+          "stage": "Stage 2 - Welding",
+          "recommendation": "investigate interruption",
+          "reason": "Stage 2 - Welding is STOPPED, not slow (busy 5%, queue 6, starved 28%, for 3 checks). Adding capacity to a stopped stage achieves nothing - restart it first."
+        },
+        {
+          "sim_second": 12601,
+          "type": "command",
+          "stage": "Stage 3 - Finishing",
+          "old_rate": 0.6,
+          "new_rate": 0.66,
+          "reason": "Stage 3 - Finishing is the limiting stage (busy 100%, queue 11, starved 0%, for 3 checks). Raising its rate by 10% to 0.66 tokens/min (ceiling 0.90).",
+          "ack": "accepted"
+        },
+        {
+          "sim_second": 15001,
+          "type": "command",
+          "stage": "Stage 3 - Finishing",
+          "old_rate": 0.66,
+          "new_rate": 0.726,
+          "reason": "Stage 3 - Finishing is the limiting stage (busy 100%, queue 6, starved 0%, for 3 checks). Raising its rate by 10% to 0.73 tokens/min (ceiling 0.90).",
+          "ack": "accepted"
+        }
+      ]
+    },
+    "difference": {
+      "completed": 1,
+      "throughput_per_hour": 0.12,
+      "avg_wait_seconds": -105.8
+    },
+    "commands_sent": 2,
+    "advice_given": 1
+  }
+]

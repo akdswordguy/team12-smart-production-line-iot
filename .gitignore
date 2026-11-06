@@ -1,0 +1,15 @@
+# The fixed dataset is NOT committed - it is large, and it is not ours.
+# Get it with:  python scripts/fetch_dataset.py
+data/raw/*.csv
+
+# Large derived files - rebuild them with:
+#   python src/clean.py && python src/ml_features.py
+data/processed/events_clean.csv
+data/processed/features.csv
+
+# Runtime output
+db/*.db
+logs/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/

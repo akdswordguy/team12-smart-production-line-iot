@@ -1,0 +1,26 @@
+{
+  "note": "Starting rates for the VIRTUAL line, calibrated from real output. capacity_proxy_used (p90 of items/min during productive slots) is what we copy into config.yaml simulation.stages. The dataset has no stage order, so assigning these machines to stages 1/2/3 is our documented assumption, not a measurement.",
+  "per_asset": {
+    "0": {
+      "mean_items_per_min": 0.42,
+      "median_items_per_min": 0.6,
+      "p90_items_per_min": 0.8,
+      "capacity_proxy_used": 0.8,
+      "slots_used": 59974
+    },
+    "1": {
+      "mean_items_per_min": 0.41,
+      "median_items_per_min": 0.6,
+      "p90_items_per_min": 0.8,
+      "capacity_proxy_used": 0.8,
+      "slots_used": 55341
+    },
+    "8": {
+      "mean_items_per_min": 0.37,
+      "median_items_per_min": 0.6,
+      "p90_items_per_min": 0.6,
+      "capacity_proxy_used": 0.6,
+      "slots_used": 82612
+    }
+  }
+}

@@ -1,0 +1,1145 @@
+{
+  "0": {
+    "0": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.116,
+      "slots_observed": 2502
+    },
+    "1": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.032,
+      "slots_observed": 2449
+    },
+    "2": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 1.993,
+      "slots_observed": 2458
+    },
+    "3": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 1.978,
+      "slots_observed": 2448
+    },
+    "4": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 1.869,
+      "slots_observed": 2458
+    },
+    "5": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 1.846,
+      "slots_observed": 2470
+    },
+    "6": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 1.948,
+      "slots_observed": 2442
+    },
+    "7": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.011,
+      "slots_observed": 2481
+    },
+    "8": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.056,
+      "slots_observed": 2473
+    },
+    "9": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.132,
+      "slots_observed": 2404
+    },
+    "10": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.137,
+      "slots_observed": 2472
+    },
+    "11": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.143,
+      "slots_observed": 2510
+    },
+    "12": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.164,
+      "slots_observed": 2557
+    },
+    "13": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.21,
+      "slots_observed": 2533
+    },
+    "14": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.218,
+      "slots_observed": 2578
+    },
+    "15": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.228,
+      "slots_observed": 2535
+    },
+    "16": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.274,
+      "slots_observed": 2572
+    },
+    "17": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.245,
+      "slots_observed": 2547
+    },
+    "18": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.201,
+      "slots_observed": 2597
+    },
+    "19": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.128,
+      "slots_observed": 2585
+    },
+    "20": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.151,
+      "slots_observed": 2456
+    },
+    "21": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.157,
+      "slots_observed": 2469
+    },
+    "22": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.142,
+      "slots_observed": 2461
+    },
+    "23": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.136,
+      "slots_observed": 2469
+    },
+    "overall": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.106,
+      "slots_observed": 59926
+    }
+  },
+  "1": {
+    "0": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.113,
+      "slots_observed": 2274
+    },
+    "1": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.101,
+      "slots_observed": 2288
+    },
+    "2": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.054,
+      "slots_observed": 2255
+    },
+    "3": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 1.939,
+      "slots_observed": 2243
+    },
+    "4": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 1.883,
+      "slots_observed": 2240
+    },
+    "5": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 1.878,
+      "slots_observed": 2242
+    },
+    "6": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.02,
+      "slots_observed": 2265
+    },
+    "7": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 1.998,
+      "slots_observed": 2280
+    },
+    "8": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 1.991,
+      "slots_observed": 2355
+    },
+    "9": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.067,
+      "slots_observed": 2354
+    },
+    "10": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.026,
+      "slots_observed": 2366
+    },
+    "11": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.026,
+      "slots_observed": 2359
+    },
+    "12": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.026,
+      "slots_observed": 2342
+    },
+    "13": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.139,
+      "slots_observed": 2357
+    },
+    "14": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.168,
+      "slots_observed": 2345
+    },
+    "15": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.21,
+      "slots_observed": 2347
+    },
+    "16": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.206,
+      "slots_observed": 2346
+    },
+    "17": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.204,
+      "slots_observed": 2314
+    },
+    "18": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.116,
+      "slots_observed": 2318
+    },
+    "19": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.094,
+      "slots_observed": 2287
+    },
+    "20": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.109,
+      "slots_observed": 2298
+    },
+    "21": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.112,
+      "slots_observed": 2277
+    },
+    "22": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.094,
+      "slots_observed": 2268
+    },
+    "23": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.113,
+      "slots_observed": 2278
+    },
+    "overall": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.071,
+      "slots_observed": 55298
+    }
+  },
+  "2": {
+    "0": {
+      "median_items_per_slot": 5.0,
+      "mean_items_per_slot": 3.885,
+      "slots_observed": 3037
+    },
+    "1": {
+      "median_items_per_slot": 5.0,
+      "mean_items_per_slot": 3.874,
+      "slots_observed": 3038
+    },
+    "2": {
+      "median_items_per_slot": 5.0,
+      "mean_items_per_slot": 3.735,
+      "slots_observed": 3016
+    },
+    "3": {
+      "median_items_per_slot": 5.0,
+      "mean_items_per_slot": 3.766,
+      "slots_observed": 3052
+    },
+    "4": {
+      "median_items_per_slot": 5.0,
+      "mean_items_per_slot": 3.717,
+      "slots_observed": 3072
+    },
+    "5": {
+      "median_items_per_slot": 5.0,
+      "mean_items_per_slot": 4.101,
+      "slots_observed": 3089
+    },
+    "6": {
+      "median_items_per_slot": 5.0,
+      "mean_items_per_slot": 4.309,
+      "slots_observed": 3075
+    },
+    "7": {
+      "median_items_per_slot": 6.0,
+      "mean_items_per_slot": 4.305,
+      "slots_observed": 3119
+    },
+    "8": {
+      "median_items_per_slot": 6.0,
+      "mean_items_per_slot": 4.382,
+      "slots_observed": 3112
+    },
+    "9": {
+      "median_items_per_slot": 6.0,
+      "mean_items_per_slot": 4.447,
+      "slots_observed": 3104
+    },
+    "10": {
+      "median_items_per_slot": 6.0,
+      "mean_items_per_slot": 4.489,
+      "slots_observed": 3090
+    },
+    "11": {
+      "median_items_per_slot": 6.0,
+      "mean_items_per_slot": 4.35,
+      "slots_observed": 3100
+    },
+    "12": {
+      "median_items_per_slot": 6.0,
+      "mean_items_per_slot": 4.54,
+      "slots_observed": 3098
+    },
+    "13": {
+      "median_items_per_slot": 6.0,
+      "mean_items_per_slot": 4.56,
+      "slots_observed": 3077
+    },
+    "14": {
+      "median_items_per_slot": 6.0,
+      "mean_items_per_slot": 4.528,
+      "slots_observed": 3071
+    },
+    "15": {
+      "median_items_per_slot": 6.0,
+      "mean_items_per_slot": 4.408,
+      "slots_observed": 3063
+    },
+    "16": {
+      "median_items_per_slot": 6.0,
+      "mean_items_per_slot": 4.423,
+      "slots_observed": 3054
+    },
+    "17": {
+      "median_items_per_slot": 5.0,
+      "mean_items_per_slot": 4.145,
+      "slots_observed": 3033
+    },
+    "18": {
+      "median_items_per_slot": 5.0,
+      "mean_items_per_slot": 3.94,
+      "slots_observed": 3009
+    },
+    "19": {
+      "median_items_per_slot": 5.0,
+      "mean_items_per_slot": 3.788,
+      "slots_observed": 3032
+    },
+    "20": {
+      "median_items_per_slot": 5.0,
+      "mean_items_per_slot": 3.901,
+      "slots_observed": 3022
+    },
+    "21": {
+      "median_items_per_slot": 5.0,
+      "mean_items_per_slot": 3.851,
+      "slots_observed": 3006
+    },
+    "22": {
+      "median_items_per_slot": 5.0,
+      "mean_items_per_slot": 3.795,
+      "slots_observed": 3023
+    },
+    "23": {
+      "median_items_per_slot": 5.0,
+      "mean_items_per_slot": 3.893,
+      "slots_observed": 3021
+    },
+    "overall": {
+      "median_items_per_slot": 5.0,
+      "mean_items_per_slot": 4.133,
+      "slots_observed": 73413
+    }
+  },
+  "3": {
+    "0": {
+      "median_items_per_slot": 5.0,
+      "mean_items_per_slot": 3.764,
+      "slots_observed": 3048
+    },
+    "1": {
+      "median_items_per_slot": 5.0,
+      "mean_items_per_slot": 3.709,
+      "slots_observed": 3056
+    },
+    "2": {
+      "median_items_per_slot": 5.0,
+      "mean_items_per_slot": 3.596,
+      "slots_observed": 3064
+    },
+    "3": {
+      "median_items_per_slot": 4.0,
+      "mean_items_per_slot": 3.454,
+      "slots_observed": 3023
+    },
+    "4": {
+      "median_items_per_slot": 4.0,
+      "mean_items_per_slot": 3.476,
+      "slots_observed": 3033
+    },
+    "5": {
+      "median_items_per_slot": 5.0,
+      "mean_items_per_slot": 3.759,
+      "slots_observed": 3044
+    },
+    "6": {
+      "median_items_per_slot": 5.0,
+      "mean_items_per_slot": 3.995,
+      "slots_observed": 3055
+    },
+    "7": {
+      "median_items_per_slot": 5.0,
+      "mean_items_per_slot": 4.022,
+      "slots_observed": 3074
+    },
+    "8": {
+      "median_items_per_slot": 5.0,
+      "mean_items_per_slot": 4.059,
+      "slots_observed": 3069
+    },
+    "9": {
+      "median_items_per_slot": 5.0,
+      "mean_items_per_slot": 4.237,
+      "slots_observed": 3102
+    },
+    "10": {
+      "median_items_per_slot": 5.0,
+      "mean_items_per_slot": 4.327,
+      "slots_observed": 3087
+    },
+    "11": {
+      "median_items_per_slot": 5.0,
+      "mean_items_per_slot": 4.304,
+      "slots_observed": 3077
+    },
+    "12": {
+      "median_items_per_slot": 5.0,
+      "mean_items_per_slot": 4.259,
+      "slots_observed": 3071
+    },
+    "13": {
+      "median_items_per_slot": 5.0,
+      "mean_items_per_slot": 4.228,
+      "slots_observed": 3087
+    },
+    "14": {
+      "median_items_per_slot": 5.0,
+      "mean_items_per_slot": 4.319,
+      "slots_observed": 3078
+    },
+    "15": {
+      "median_items_per_slot": 6.0,
+      "mean_items_per_slot": 4.351,
+      "slots_observed": 3072
+    },
+    "16": {
+      "median_items_per_slot": 6.0,
+      "mean_items_per_slot": 4.413,
+      "slots_observed": 3019
+    },
+    "17": {
+      "median_items_per_slot": 6.0,
+      "mean_items_per_slot": 4.251,
+      "slots_observed": 3013
+    },
+    "18": {
+      "median_items_per_slot": 5.0,
+      "mean_items_per_slot": 4.193,
+      "slots_observed": 3025
+    },
+    "19": {
+      "median_items_per_slot": 5.0,
+      "mean_items_per_slot": 3.889,
+      "slots_observed": 3026
+    },
+    "20": {
+      "median_items_per_slot": 5.0,
+      "mean_items_per_slot": 3.739,
+      "slots_observed": 3046
+    },
+    "21": {
+      "median_items_per_slot": 5.0,
+      "mean_items_per_slot": 3.758,
+      "slots_observed": 3042
+    },
+    "22": {
+      "median_items_per_slot": 5.0,
+      "mean_items_per_slot": 3.751,
+      "slots_observed": 3046
+    },
+    "23": {
+      "median_items_per_slot": 5.0,
+      "mean_items_per_slot": 3.76,
+      "slots_observed": 3040
+    },
+    "overall": {
+      "median_items_per_slot": 5.0,
+      "mean_items_per_slot": 3.985,
+      "slots_observed": 73297
+    }
+  },
+  "4": {
+    "0": {
+      "median_items_per_slot": 7.0,
+      "mean_items_per_slot": 5.728,
+      "slots_observed": 3157
+    },
+    "1": {
+      "median_items_per_slot": 6.0,
+      "mean_items_per_slot": 5.694,
+      "slots_observed": 3165
+    },
+    "2": {
+      "median_items_per_slot": 6.0,
+      "mean_items_per_slot": 5.442,
+      "slots_observed": 3149
+    },
+    "3": {
+      "median_items_per_slot": 6.0,
+      "mean_items_per_slot": 5.48,
+      "slots_observed": 3131
+    },
+    "4": {
+      "median_items_per_slot": 6.0,
+      "mean_items_per_slot": 5.571,
+      "slots_observed": 3129
+    },
+    "5": {
+      "median_items_per_slot": 7.0,
+      "mean_items_per_slot": 6.015,
+      "slots_observed": 3131
+    },
+    "6": {
+      "median_items_per_slot": 7.0,
+      "mean_items_per_slot": 6.371,
+      "slots_observed": 3138
+    },
+    "7": {
+      "median_items_per_slot": 8.0,
+      "mean_items_per_slot": 6.709,
+      "slots_observed": 3131
+    },
+    "8": {
+      "median_items_per_slot": 8.0,
+      "mean_items_per_slot": 6.78,
+      "slots_observed": 3116
+    },
+    "9": {
+      "median_items_per_slot": 8.0,
+      "mean_items_per_slot": 6.789,
+      "slots_observed": 3110
+    },
+    "10": {
+      "median_items_per_slot": 9.0,
+      "mean_items_per_slot": 6.861,
+      "slots_observed": 3133
+    },
+    "11": {
+      "median_items_per_slot": 8.0,
+      "mean_items_per_slot": 6.784,
+      "slots_observed": 3161
+    },
+    "12": {
+      "median_items_per_slot": 8.0,
+      "mean_items_per_slot": 6.639,
+      "slots_observed": 3164
+    },
+    "13": {
+      "median_items_per_slot": 8.0,
+      "mean_items_per_slot": 6.65,
+      "slots_observed": 3121
+    },
+    "14": {
+      "median_items_per_slot": 8.0,
+      "mean_items_per_slot": 6.766,
+      "slots_observed": 3135
+    },
+    "15": {
+      "median_items_per_slot": 8.0,
+      "mean_items_per_slot": 6.724,
+      "slots_observed": 3114
+    },
+    "16": {
+      "median_items_per_slot": 8.0,
+      "mean_items_per_slot": 6.682,
+      "slots_observed": 3113
+    },
+    "17": {
+      "median_items_per_slot": 7.0,
+      "mean_items_per_slot": 6.564,
+      "slots_observed": 3099
+    },
+    "18": {
+      "median_items_per_slot": 7.0,
+      "mean_items_per_slot": 6.522,
+      "slots_observed": 3121
+    },
+    "19": {
+      "median_items_per_slot": 7.0,
+      "mean_items_per_slot": 6.194,
+      "slots_observed": 3146
+    },
+    "20": {
+      "median_items_per_slot": 7.0,
+      "mean_items_per_slot": 5.791,
+      "slots_observed": 3157
+    },
+    "21": {
+      "median_items_per_slot": 7.0,
+      "mean_items_per_slot": 5.827,
+      "slots_observed": 3145
+    },
+    "22": {
+      "median_items_per_slot": 7.0,
+      "mean_items_per_slot": 5.748,
+      "slots_observed": 3154
+    },
+    "23": {
+      "median_items_per_slot": 7.0,
+      "mean_items_per_slot": 5.747,
+      "slots_observed": 3142
+    },
+    "overall": {
+      "median_items_per_slot": 7.0,
+      "mean_items_per_slot": 6.252,
+      "slots_observed": 75262
+    }
+  },
+  "5": {
+    "0": {
+      "median_items_per_slot": 4.0,
+      "mean_items_per_slot": 3.221,
+      "slots_observed": 2722
+    },
+    "1": {
+      "median_items_per_slot": 4.0,
+      "mean_items_per_slot": 3.192,
+      "slots_observed": 2715
+    },
+    "2": {
+      "median_items_per_slot": 4.0,
+      "mean_items_per_slot": 3.162,
+      "slots_observed": 2700
+    },
+    "3": {
+      "median_items_per_slot": 4.0,
+      "mean_items_per_slot": 3.087,
+      "slots_observed": 2701
+    },
+    "4": {
+      "median_items_per_slot": 4.0,
+      "mean_items_per_slot": 2.781,
+      "slots_observed": 2901
+    },
+    "5": {
+      "median_items_per_slot": 4.0,
+      "mean_items_per_slot": 2.974,
+      "slots_observed": 2945
+    },
+    "6": {
+      "median_items_per_slot": 4.0,
+      "mean_items_per_slot": 3.086,
+      "slots_observed": 2986
+    },
+    "7": {
+      "median_items_per_slot": 4.0,
+      "mean_items_per_slot": 3.209,
+      "slots_observed": 3000
+    },
+    "8": {
+      "median_items_per_slot": 4.0,
+      "mean_items_per_slot": 3.24,
+      "slots_observed": 2991
+    },
+    "9": {
+      "median_items_per_slot": 4.0,
+      "mean_items_per_slot": 3.292,
+      "slots_observed": 2982
+    },
+    "10": {
+      "median_items_per_slot": 4.0,
+      "mean_items_per_slot": 3.382,
+      "slots_observed": 2971
+    },
+    "11": {
+      "median_items_per_slot": 4.0,
+      "mean_items_per_slot": 3.353,
+      "slots_observed": 2972
+    },
+    "12": {
+      "median_items_per_slot": 4.0,
+      "mean_items_per_slot": 3.366,
+      "slots_observed": 2944
+    },
+    "13": {
+      "median_items_per_slot": 4.0,
+      "mean_items_per_slot": 3.301,
+      "slots_observed": 2939
+    },
+    "14": {
+      "median_items_per_slot": 4.0,
+      "mean_items_per_slot": 3.324,
+      "slots_observed": 2947
+    },
+    "15": {
+      "median_items_per_slot": 4.0,
+      "mean_items_per_slot": 3.349,
+      "slots_observed": 2910
+    },
+    "16": {
+      "median_items_per_slot": 4.0,
+      "mean_items_per_slot": 3.396,
+      "slots_observed": 2871
+    },
+    "17": {
+      "median_items_per_slot": 4.0,
+      "mean_items_per_slot": 3.319,
+      "slots_observed": 2846
+    },
+    "18": {
+      "median_items_per_slot": 4.0,
+      "mean_items_per_slot": 3.261,
+      "slots_observed": 2846
+    },
+    "19": {
+      "median_items_per_slot": 4.0,
+      "mean_items_per_slot": 3.233,
+      "slots_observed": 2787
+    },
+    "20": {
+      "median_items_per_slot": 4.0,
+      "mean_items_per_slot": 3.272,
+      "slots_observed": 2680
+    },
+    "21": {
+      "median_items_per_slot": 4.0,
+      "mean_items_per_slot": 3.244,
+      "slots_observed": 2679
+    },
+    "22": {
+      "median_items_per_slot": 4.0,
+      "mean_items_per_slot": 3.246,
+      "slots_observed": 2703
+    },
+    "23": {
+      "median_items_per_slot": 4.0,
+      "mean_items_per_slot": 3.239,
+      "slots_observed": 2704
+    },
+    "overall": {
+      "median_items_per_slot": 4.0,
+      "mean_items_per_slot": 3.231,
+      "slots_observed": 68442
+    }
+  },
+  "6": {
+    "0": {
+      "median_items_per_slot": 0.0,
+      "mean_items_per_slot": 0.706,
+      "slots_observed": 3252
+    },
+    "1": {
+      "median_items_per_slot": 0.0,
+      "mean_items_per_slot": 0.649,
+      "slots_observed": 3229
+    },
+    "2": {
+      "median_items_per_slot": 0.0,
+      "mean_items_per_slot": 0.643,
+      "slots_observed": 3237
+    },
+    "3": {
+      "median_items_per_slot": 0.0,
+      "mean_items_per_slot": 0.645,
+      "slots_observed": 3204
+    },
+    "4": {
+      "median_items_per_slot": 0.0,
+      "mean_items_per_slot": 0.616,
+      "slots_observed": 3214
+    },
+    "5": {
+      "median_items_per_slot": 0.0,
+      "mean_items_per_slot": 0.623,
+      "slots_observed": 3150
+    },
+    "6": {
+      "median_items_per_slot": 0.0,
+      "mean_items_per_slot": 0.698,
+      "slots_observed": 3163
+    },
+    "7": {
+      "median_items_per_slot": 0.0,
+      "mean_items_per_slot": 0.701,
+      "slots_observed": 3090
+    },
+    "8": {
+      "median_items_per_slot": 0.0,
+      "mean_items_per_slot": 0.755,
+      "slots_observed": 3120
+    },
+    "9": {
+      "median_items_per_slot": 0.0,
+      "mean_items_per_slot": 0.767,
+      "slots_observed": 3111
+    },
+    "10": {
+      "median_items_per_slot": 0.0,
+      "mean_items_per_slot": 0.765,
+      "slots_observed": 3163
+    },
+    "11": {
+      "median_items_per_slot": 0.0,
+      "mean_items_per_slot": 0.767,
+      "slots_observed": 3210
+    },
+    "12": {
+      "median_items_per_slot": 0.0,
+      "mean_items_per_slot": 0.786,
+      "slots_observed": 3194
+    },
+    "13": {
+      "median_items_per_slot": 0.0,
+      "mean_items_per_slot": 0.785,
+      "slots_observed": 3137
+    },
+    "14": {
+      "median_items_per_slot": 0.0,
+      "mean_items_per_slot": 0.801,
+      "slots_observed": 3177
+    },
+    "15": {
+      "median_items_per_slot": 0.0,
+      "mean_items_per_slot": 0.803,
+      "slots_observed": 3205
+    },
+    "16": {
+      "median_items_per_slot": 0.0,
+      "mean_items_per_slot": 0.804,
+      "slots_observed": 3192
+    },
+    "17": {
+      "median_items_per_slot": 0.0,
+      "mean_items_per_slot": 0.808,
+      "slots_observed": 3190
+    },
+    "18": {
+      "median_items_per_slot": 0.0,
+      "mean_items_per_slot": 0.792,
+      "slots_observed": 3190
+    },
+    "19": {
+      "median_items_per_slot": 0.0,
+      "mean_items_per_slot": 0.759,
+      "slots_observed": 3211
+    },
+    "20": {
+      "median_items_per_slot": 0.0,
+      "mean_items_per_slot": 0.714,
+      "slots_observed": 3199
+    },
+    "21": {
+      "median_items_per_slot": 0.0,
+      "mean_items_per_slot": 0.7,
+      "slots_observed": 3200
+    },
+    "22": {
+      "median_items_per_slot": 0.0,
+      "mean_items_per_slot": 0.72,
+      "slots_observed": 3217
+    },
+    "23": {
+      "median_items_per_slot": 0.0,
+      "mean_items_per_slot": 0.71,
+      "slots_observed": 3237
+    },
+    "overall": {
+      "median_items_per_slot": 0.0,
+      "mean_items_per_slot": 0.73,
+      "slots_observed": 76492
+    }
+  },
+  "7": {
+    "0": {
+      "median_items_per_slot": 0.0,
+      "mean_items_per_slot": 1.684,
+      "slots_observed": 3196
+    },
+    "1": {
+      "median_items_per_slot": 0.0,
+      "mean_items_per_slot": 1.673,
+      "slots_observed": 3188
+    },
+    "2": {
+      "median_items_per_slot": 0.0,
+      "mean_items_per_slot": 1.713,
+      "slots_observed": 3176
+    },
+    "3": {
+      "median_items_per_slot": 0.0,
+      "mean_items_per_slot": 1.614,
+      "slots_observed": 3160
+    },
+    "4": {
+      "median_items_per_slot": 0.0,
+      "mean_items_per_slot": 1.614,
+      "slots_observed": 3153
+    },
+    "5": {
+      "median_items_per_slot": 0.0,
+      "mean_items_per_slot": 1.775,
+      "slots_observed": 3174
+    },
+    "6": {
+      "median_items_per_slot": 0.0,
+      "mean_items_per_slot": 1.907,
+      "slots_observed": 3157
+    },
+    "7": {
+      "median_items_per_slot": 0.0,
+      "mean_items_per_slot": 1.893,
+      "slots_observed": 3145
+    },
+    "8": {
+      "median_items_per_slot": 0.0,
+      "mean_items_per_slot": 1.942,
+      "slots_observed": 3157
+    },
+    "9": {
+      "median_items_per_slot": 2.0,
+      "mean_items_per_slot": 1.972,
+      "slots_observed": 3172
+    },
+    "10": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 1.998,
+      "slots_observed": 3186
+    },
+    "11": {
+      "median_items_per_slot": 2.0,
+      "mean_items_per_slot": 1.981,
+      "slots_observed": 3178
+    },
+    "12": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.041,
+      "slots_observed": 3178
+    },
+    "13": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.047,
+      "slots_observed": 3156
+    },
+    "14": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.07,
+      "slots_observed": 3169
+    },
+    "15": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.013,
+      "slots_observed": 3152
+    },
+    "16": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 2.036,
+      "slots_observed": 3132
+    },
+    "17": {
+      "median_items_per_slot": 0.0,
+      "mean_items_per_slot": 1.939,
+      "slots_observed": 3108
+    },
+    "18": {
+      "median_items_per_slot": 0.0,
+      "mean_items_per_slot": 1.836,
+      "slots_observed": 3117
+    },
+    "19": {
+      "median_items_per_slot": 0.0,
+      "mean_items_per_slot": 1.807,
+      "slots_observed": 3128
+    },
+    "20": {
+      "median_items_per_slot": 0.0,
+      "mean_items_per_slot": 1.738,
+      "slots_observed": 3129
+    },
+    "21": {
+      "median_items_per_slot": 0.0,
+      "mean_items_per_slot": 1.755,
+      "slots_observed": 3127
+    },
+    "22": {
+      "median_items_per_slot": 0.0,
+      "mean_items_per_slot": 1.732,
+      "slots_observed": 3132
+    },
+    "23": {
+      "median_items_per_slot": 0.0,
+      "mean_items_per_slot": 1.747,
+      "slots_observed": 3122
+    },
+    "overall": {
+      "median_items_per_slot": 0.0,
+      "mean_items_per_slot": 1.855,
+      "slots_observed": 75692
+    }
+  },
+  "8": {
+    "0": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 1.768,
+      "slots_observed": 3482
+    },
+    "1": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 1.745,
+      "slots_observed": 3472
+    },
+    "2": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 1.749,
+      "slots_observed": 3485
+    },
+    "3": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 1.71,
+      "slots_observed": 3446
+    },
+    "4": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 1.684,
+      "slots_observed": 3429
+    },
+    "5": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 1.763,
+      "slots_observed": 3428
+    },
+    "6": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 1.87,
+      "slots_observed": 3382
+    },
+    "7": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 1.845,
+      "slots_observed": 3428
+    },
+    "8": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 1.946,
+      "slots_observed": 3452
+    },
+    "9": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 1.983,
+      "slots_observed": 3443
+    },
+    "10": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 1.97,
+      "slots_observed": 3445
+    },
+    "11": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 1.986,
+      "slots_observed": 3470
+    },
+    "12": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 1.956,
+      "slots_observed": 3465
+    },
+    "13": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 1.91,
+      "slots_observed": 3459
+    },
+    "14": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 1.887,
+      "slots_observed": 3448
+    },
+    "15": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 1.923,
+      "slots_observed": 3438
+    },
+    "16": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 1.949,
+      "slots_observed": 3443
+    },
+    "17": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 1.945,
+      "slots_observed": 3422
+    },
+    "18": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 1.929,
+      "slots_observed": 3409
+    },
+    "19": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 1.875,
+      "slots_observed": 3404
+    },
+    "20": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 1.783,
+      "slots_observed": 3422
+    },
+    "21": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 1.815,
+      "slots_observed": 3393
+    },
+    "22": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 1.775,
+      "slots_observed": 3443
+    },
+    "23": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 1.77,
+      "slots_observed": 3456
+    },
+    "overall": {
+      "median_items_per_slot": 3.0,
+      "mean_items_per_slot": 1.856,
+      "slots_observed": 82564
+    }
+  }
+}

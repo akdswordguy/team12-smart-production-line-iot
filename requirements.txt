@@ -1,0 +1,11 @@
+# Tested dependency set for all three trained model families.
+# Use a virtual environment; setup_windows.ps1 creates one automatically.
+pandas==3.0.1
+numpy==2.3.5
+scikit-learn==1.9.1
+joblib==1.6.0
+PyYAML==6.0.2
+paho-mqtt==2.1.0
+amqtt==0.11.3
+
+

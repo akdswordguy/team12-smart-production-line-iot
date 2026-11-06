@@ -1,0 +1,185 @@
+{
+  "source": "fixed SME Manufacturing Dataset, Company A and B",
+  "period": [
+    "2022-01-01",
+    "2022-09-30"
+  ],
+  "metric": "machine-equal mean alarm share among Production-or-Alarm reports",
+  "interpretation": "Lower is better only for this conditional interruption proxy; overall company throughput or efficiency cannot be ranked.",
+  "report_density_note": "Reports per expected 5-minute (A) or 1-minute (B) grid slot; B may report selectively, so this is context rather than a quality penalty.",
+  "lower_conditional_alarm_company": "A",
+  "summary": {
+    "A": {
+      "months": 9,
+      "mean_monthly_alarm_conditional_pct": 7.19,
+      "mean_monthly_report_density_pct": 90.46,
+      "total_reports": 639129
+    },
+    "B": {
+      "months": 9,
+      "mean_monthly_alarm_conditional_pct": 8.55,
+      "mean_monthly_report_density_pct": 17.92,
+      "total_reports": 1238746
+    }
+  },
+  "monthly": [
+    {
+      "company": "A",
+      "month": "2022-01",
+      "machines_reporting": 9,
+      "reports": 65702,
+      "alarm_conditional_pct": 10.42,
+      "mean_report_density_pct": 81.77
+    },
+    {
+      "company": "B",
+      "month": "2022-01",
+      "machines_reporting": 16,
+      "reports": 171856,
+      "alarm_conditional_pct": 0.09,
+      "mean_report_density_pct": 24.06
+    },
+    {
+      "company": "A",
+      "month": "2022-02",
+      "machines_reporting": 9,
+      "reports": 71364,
+      "alarm_conditional_pct": 2.81,
+      "mean_report_density_pct": 98.33
+    },
+    {
+      "company": "B",
+      "month": "2022-02",
+      "machines_reporting": 17,
+      "reports": 127831,
+      "alarm_conditional_pct": 1.64,
+      "mean_report_density_pct": 18.65
+    },
+    {
+      "company": "A",
+      "month": "2022-03",
+      "machines_reporting": 9,
+      "reports": 79828,
+      "alarm_conditional_pct": 1.51,
+      "mean_report_density_pct": 99.35
+    },
+    {
+      "company": "B",
+      "month": "2022-03",
+      "machines_reporting": 18,
+      "reports": 170327,
+      "alarm_conditional_pct": 8.25,
+      "mean_report_density_pct": 21.2
+    },
+    {
+      "company": "A",
+      "month": "2022-04",
+      "machines_reporting": 9,
+      "reports": 75890,
+      "alarm_conditional_pct": 3.33,
+      "mean_report_density_pct": 97.6
+    },
+    {
+      "company": "B",
+      "month": "2022-04",
+      "machines_reporting": 18,
+      "reports": 122616,
+      "alarm_conditional_pct": 5.36,
+      "mean_report_density_pct": 15.77
+    },
+    {
+      "company": "A",
+      "month": "2022-05",
+      "machines_reporting": 9,
+      "reports": 69303,
+      "alarm_conditional_pct": 1.84,
+      "mean_report_density_pct": 86.25
+    },
+    {
+      "company": "B",
+      "month": "2022-05",
+      "machines_reporting": 18,
+      "reports": 146224,
+      "alarm_conditional_pct": 5.91,
+      "mean_report_density_pct": 18.2
+    },
+    {
+      "company": "A",
+      "month": "2022-06",
+      "machines_reporting": 9,
+      "reports": 73826,
+      "alarm_conditional_pct": 4.79,
+      "mean_report_density_pct": 94.94
+    },
+    {
+      "company": "B",
+      "month": "2022-06",
+      "machines_reporting": 18,
+      "reports": 130087,
+      "alarm_conditional_pct": 5.66,
+      "mean_report_density_pct": 16.73
+    },
+    {
+      "company": "A",
+      "month": "2022-07",
+      "machines_reporting": 9,
+      "reports": 75057,
+      "alarm_conditional_pct": 8.53,
+      "mean_report_density_pct": 93.41
+    },
+    {
+      "company": "B",
+      "month": "2022-07",
+      "machines_reporting": 18,
+      "reports": 134772,
+      "alarm_conditional_pct": 10.38,
+      "mean_report_density_pct": 16.77
+    },
+    {
+      "company": "A",
+      "month": "2022-08",
+      "machines_reporting": 9,
+      "reports": 55011,
+      "alarm_conditional_pct": 19.6,
+      "mean_report_density_pct": 68.46
+    },
+    {
+      "company": "B",
+      "month": "2022-08",
+      "machines_reporting": 18,
+      "reports": 85268,
+      "alarm_conditional_pct": 21.79,
+      "mean_report_density_pct": 10.61
+    },
+    {
+      "company": "A",
+      "month": "2022-09",
+      "machines_reporting": 9,
+      "reports": 73148,
+      "alarm_conditional_pct": 11.87,
+      "mean_report_density_pct": 94.07
+    },
+    {
+      "company": "B",
+      "month": "2022-09",
+      "machines_reporting": 18,
+      "reports": 149765,
+      "alarm_conditional_pct": 17.84,
+      "mean_report_density_pct": 19.26
+    }
+  ],
+  "state_counts": {
+    "A": {
+      "production": 591046,
+      "alarm": 48083
+    },
+    "B": {
+      "Production": 519753,
+      "Standby": 466850,
+      "MachineOn": 150615,
+      "Loading": 50071,
+      "Alarm": 37228,
+      "Tooling": 14229
+    }
+  }
+}
