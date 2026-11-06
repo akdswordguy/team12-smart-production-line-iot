@@ -330,6 +330,31 @@ they are. `test_same_seed_gives_the_same_arrivals` asserts the first part.
 
 ---
 
+## Q: How fast is the closed loop?
+
+The **Closed-loop performance** panel answers this from the database. The
+command round trip is timed from the operator's Accept until the device's
+acknowledgement returns, with both timestamps taken on the processing
+laptop, so a clock difference between laptops cannot distort it. Over the
+HiveMQ public broker it was about 0.4 s; on a local broker about 2 ms.
+Record-to-forecast latency is timed from Node-RED receiving a record to the
+forecast being published, again on one clock.
+
+## Q: The quick models give the same score on every click. Are they real?
+
+Yes. Each click fits a new model; the fit time changes and a new row is
+written to `ml_demo_runs`. The score repeats because the data slice, the
+chronological split and the random seed are fixed. That is reproducibility.
+
+## Q: Does the chosen model affect the bottleneck decision?
+
+By default, no, and on purpose: the bottleneck detector works on the
+virtual line, and the dataset has no stage order or bottleneck labels to
+train on. The chosen model drives the machine forecasts and their advisory.
+With the optional `--ml-arrivals` mode, the active model's forecasts scale
+how much material reaches the line (0.7-1.3x), so a different model can
+move the bottleneck. The published results were produced without it.
+
 ## Things to volunteer before you are asked
 
 These show judgement, and each one is a point you control:

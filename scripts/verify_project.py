@@ -1,6 +1,14 @@
 """Check the fixed dataset, saved model and dashboard before a demo."""
 
 import hashlib
+
+if not hasattr(hashlib, "file_digest"):  # Python < 3.11 (for example 3.10)
+    def _file_digest(stream, name):
+        digest = hashlib.new(name)
+        for chunk in iter(lambda: stream.read(1 << 20), b""):
+            digest.update(chunk)
+        return digest
+    hashlib.file_digest = _file_digest
 import json
 import re
 from pathlib import Path

@@ -1,5 +1,7 @@
 # Team split and simple demonstration runbook
 
+For the click-by-click presentation demo, use [DEMO_SCRIPT.md](DEMO_SCRIPT.md).
+
 ## Who owns what
 
 Give each person one folder or interface to own, plus a reviewer. The

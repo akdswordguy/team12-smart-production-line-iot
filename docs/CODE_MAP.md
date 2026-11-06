@@ -20,7 +20,9 @@ src/ml_train.py           compares 3 models + 3 baselines, picks one on CV folds
 src/recorder.py           optional: SQLite writer, mirrors the Node-RED flow
 nodered/flow.json         the Node-RED flow (loaded by run_demo.py)
 db/schema.sql             the database, observed and simulated kept apart
-tests/test_logic.py       36 tests of the logic we claim in the viva
+scripts/add_closed_loop_panel.py  installs the closed-loop panel, timing storage,
+                          replay-again and shift-restart controls in the flow
+tests/test_logic.py       56 tests of the logic we claim in the viva
 ```
 
 ---
@@ -135,6 +137,10 @@ them by accident.
 Runs with plain `python`, no pytest needed. Covers validation, alert
 classification, the decision rules (including that a healthy line is left
 alone), simulator conservation and determinism, and the two leakage tests.
+It also covers the closed-loop timings (command round trip on one clock,
+record-to-forecast latency, gaps within one shift), replaying a company
+again, restarting the virtual shift, and the bounded optional ML-driven
+arrivals.
 
 ---
 

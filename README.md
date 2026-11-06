@@ -94,7 +94,7 @@ python scripts/compare_companies.py    # fixed A/B monthly interruption comparis
 python scripts/update_company_dashboard.py # refresh A/B and B-model panels
 python scripts/update_dashboard.py     # refresh saved scores on dashboard
 python src/scenario_compare.py         # virtual-line before/after
-python tests/test_logic.py             # 45 tests
+python tests/test_logic.py             # 56 tests
 ```
 
 The unchanged raw CSV and prepared features are included in this Desktop
@@ -119,6 +119,7 @@ normal graded demo should use Node-RED and its dashboard.
 | Architecture check and teacher demo evidence | `docs/WORKFLOW_CHECK.md` |
 | What every file does | `docs/CODE_MAP.md` |
 | Presentation view and speaking order | `docs/PRESENTATION_RUNBOOK.md` |
+| Step-by-step demo script (two laptops or one) | `docs/DEMO_SCRIPT.md` |
 | Team work plan and demo order | `docs/TEAM_ROADMAP.md` |
 | Prompt for AI-assisted teammate tasks | `docs/AI_HANDOFF_PROMPT.md` |
 | How to change things live | `docs/LIVE_MODIFICATION_GUIDE.md` |
@@ -182,6 +183,18 @@ model beats persistence on both Active MAE and overall MAE. See
 results/MODEL_RESULTS.md and docs/ML_WORKFLOW.md.
 
 
+**Closed-loop performance** (measured live; timings depend on the computer and network):
+
+| Measure | How it is measured | Result |
+|---|---|---|
+| Command round trip | operator Accept -> MQTT command -> device applies -> ACK back, both ends on the processing laptop's clock | 0.36-0.39 s over the HiveMQ public broker; about 2 ms on a local broker |
+| Record -> forecast | Node-RED receipt -> validation -> SQLite -> MQTT -> analytics -> forecast | shown live on the dashboard (average and p95) |
+| Stability | commands on a healthy line; shortest gap between commands | 0 commands; gaps never below the 1,800 s cooldown |
+| Control effect (simulated) | identical arrivals, Stage 2 slowdown, with vs without action | 202 -> 223 items, wait 1805 -> 829 s |
+
+The dashboard's **Closed-loop performance** panel and `scripts/check_demo.py`
+read these from the `loop_metrics` table.
+
 ---
 
 ## Folder structure
@@ -197,7 +210,7 @@ nodered/flow.json       the Node-RED flow loaded by the runner
 results/                audit, model and scenario outputs
 scripts/                dataset fetch, broker, db init, demo runner
 src/                    the services (one job per file)
-tests/test_logic.py     45 tests, no pytest required
+tests/test_logic.py     56 tests, no pytest required
 ```
 
 ---

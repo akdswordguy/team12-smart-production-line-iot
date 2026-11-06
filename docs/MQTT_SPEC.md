@@ -220,6 +220,28 @@ Every command gets an acknowledgement, including refusals
 Scenario injections and the engine's advice (for example "investigate
 interruption" when a stage is stopped rather than slow).
 
+## `team12/replay/control`  (dashboard -> device)
+`{"action": "start", "company": "A"}` starts (or replays again) one
+company's dataset replay. `{"action": "restart_line"}` starts a new
+simulated shift on the virtual line. Sent with QoS 1.
+
+## `team12/replay/status`  (device -> dashboard)
+`{"company": "A" | "B" | "line", "state": "ready" | "running" | "completed" | "error" | "restarted", "ts_replay": ...}`,
+repeated every few seconds so a dashboard that starts later catches up.
+
+## `team12/perf/metric`  (services -> Node-RED -> `loop_metrics`)
+`{"metric": ..., "value": ..., "detail": ..., "ts_replay": ...}` where
+`metric` is one of
+
+| metric | published by | meaning |
+|---|---|---|
+| `command_round_trip_ms` | decision engine | Accept -> command -> device applies -> ACK received |
+| `command_gap_s` | decision engine | simulated seconds since the previous command in the same shift |
+| `ingest_to_forecast_ms` | analytics | Node-RED receipt -> SQLite -> analytics -> forecast published |
+| `forecast_compute_ms` | analytics | feature building and model prediction |
+
+Both ends of each timing are taken on the processing laptop's clock.
+
 ---
 
 ## Watching the traffic

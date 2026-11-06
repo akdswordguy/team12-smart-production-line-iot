@@ -85,6 +85,8 @@ def main():
                     help="virtual-line simulated seconds per real second; use 40 for a slower walkthrough")
     ap.add_argument("--limit", type=int, default=0,
                     help="replay at most N records; 0 means all")
+    ap.add_argument("--ml-arrivals", action="store_true",
+                    help="optional: let the active model's forecasts scale virtual-line arrivals")
     ap.add_argument("--once", action="store_true",
                     help="stop all services after the replay and 3 seconds to flush")
     ap.add_argument("--reset-db", action="store_true",
@@ -161,6 +163,8 @@ def main():
             args.mode, args.mode)
         if args.line_speed is not None:
             env["TEAM12_SIM_SPEED"] = str(args.line_speed)
+        if args.ml_arrivals:
+            env["TEAM12_ML_ARRIVALS"] = "1"
         start("line_sim", [sys.executable, "-u", str(ROOT / "src" / "line_sim.py")], env)
         start("decision", [sys.executable, "-u", str(ROOT / "src" / "decision.py")])
         wait_log("analytics", "Watching team12/observed/validated/#")

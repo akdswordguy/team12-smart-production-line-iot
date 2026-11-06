@@ -77,6 +77,8 @@ def main():
     parser.add_argument("--scenario", choices=("slowdown", "alarm", "healthy"), default="slowdown")
     parser.add_argument("--manual-replay", action="store_true",
                         help="wait for separate Company A and B dashboard Start buttons")
+    parser.add_argument("--ml-arrivals", action="store_true",
+                        help="optional: let the active model's forecasts scale virtual-line arrivals")
     args = parser.parse_args()
     if args.speed is None:
         args.speed = 60 if args.broker.startswith("public") else 200
@@ -127,8 +129,11 @@ def main():
             env["TEAM12_SCENARIO"] = "none" if args.scenario == "healthy" else args.scenario
             if args.line_speed is not None:
                 env["TEAM12_SIM_SPEED"] = str(args.line_speed)
+            if args.ml_arrivals:
+                env["TEAM12_ML_ARRIVALS"] = "1"
+                print("Optional ML-driven arrivals ON for the virtual line", flush=True)
             requests = queue.Queue()
-            replay_state = {"A": "ready", "B": "ready"}
+            replay_state = {"A": "ready", "B": "ready", "line": "not started"}
             replay_process = {}
             line_started = False
             last_status = 0.0
@@ -145,7 +150,7 @@ def main():
             def on_connect(client, _userdata, _flags, reason_code, _properties):
                 if not reason_code.is_failure:
                     client.subscribe(topic("replay_control"), qos=1)
-                    for company in ("A", "B"):
+                    for company in replay_state:
                         report(company, replay_state[company])
 
             def on_message(_client, _userdata, message):
@@ -153,6 +158,8 @@ def main():
                     request = json.loads(message.payload)
                     if request.get("action") == "start" and request.get("company") in ("A", "B"):
                         requests.put(request["company"])
+                    elif request.get("action") == "restart_line":
+                        requests.put("line")
                 except (ValueError, TypeError, AttributeError):
                     pass
 
@@ -168,12 +175,30 @@ def main():
             if args.role == "device":
                 while not requests.empty():
                     company = requests.get_nowait()
-                    if replay_state[company] != "ready":
+                    if company == "line":
+                        # Restart the virtual shift from t=0 (dashboard button).
+                        if not line_started:
+                            continue
+                        for entry in [c for c in children if c[0] == "line_sim"]:
+                            if entry[1].poll() is None:
+                                entry[1].terminate()
+                                try:
+                                    entry[1].wait(timeout=5)
+                                except subprocess.TimeoutExpired:
+                                    entry[1].kill()
+                            children.remove(entry)
+                        start("line_sim", [sys.executable, "-u", str(ROOT / "src/line_sim.py")], env)
+                        report("line", "restarted")
+                        report("line", "running")
+                        continue
+                    # A finished company can be replayed again; a running one cannot.
+                    if replay_state[company] not in ("ready", "completed", "error"):
                         report(company, replay_state[company])
                         continue
                     if not line_started:
                         start("line_sim", [sys.executable, "-u", str(ROOT / "src/line_sim.py")], env)
                         line_started = True
+                        report("line", "running")
                         time.sleep(1)
                     command = [sys.executable, "-u", str(ROOT / "src/publisher.py" if company == "A"
                                                           else ROOT / "src/publisher_b.py"),
@@ -187,7 +212,7 @@ def main():
                     if replay_state[company] == "running" and proc.poll() is not None:
                         report(company, "completed" if proc.returncode == 0 else "error")
                 if time.monotonic() - last_status >= 5:
-                    for company in ("A", "B"):
+                    for company in replay_state:
                         report(company, replay_state[company])
                     last_status = time.monotonic()
             for name, proc in children:

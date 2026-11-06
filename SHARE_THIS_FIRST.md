@@ -35,11 +35,12 @@ virtual bottleneck command changed the Stage 2 rate and received an accepted MQT
 ACK; a later proposal was rejected. `scripts/check_demo.py --require-command
 --require-review` passed every check. See `results/MERGED_VERIFICATION.md`.
 
-The merged version also connected through the free HiveMQ public broker, but a
-temporary broker disconnect left that particular replay incomplete (136/146 A,
-1,500/1,526 B stored). Rehearse the public connection and the two physical
-laptops before presenting. The included database is from the complete local
-broker test.
+On 2026-11-07 the project also completed a full run over the free HiveMQ public
+broker (both roles on one laptop, in separate folders): 146/146 A and
+1,526/1,526 B records stored, operator-approved commands acknowledged in about
+0.4 s, and every `check_demo.py` check passed. The included database is from a
+later complete local-broker run that also records the closed-loop timings.
+Rehearse on the classroom network before presenting.
 
 For the workflow and explanation, read `START_HERE.md`,
 `docs/PRESENTATION_RUNBOOK.md`, and `docs/VIVA_NOTES.md`.

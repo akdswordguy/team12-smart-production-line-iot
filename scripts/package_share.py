@@ -2,6 +2,14 @@
 
 import argparse
 import hashlib
+
+if not hasattr(hashlib, "file_digest"):  # Python < 3.11 (for example 3.10)
+    def _file_digest(stream, name):
+        digest = hashlib.new(name)
+        for chunk in iter(lambda: stream.read(1 << 20), b""):
+            digest.update(chunk)
+        return digest
+    hashlib.file_digest = _file_digest
 import json
 from datetime import datetime, timezone
 from pathlib import Path

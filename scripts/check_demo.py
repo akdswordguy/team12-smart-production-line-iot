@@ -26,6 +26,10 @@ def main():
     with sqlite3.connect(DB) as conn:
         counts = {table: conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
                   for table in TABLES}
+        has_loop = conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' "
+                                "AND name='loop_metrics'").fetchone() is not None
+        if has_loop:
+            counts["loop_metrics"] = conn.execute("SELECT COUNT(*) FROM loop_metrics").fetchone()[0]
         print("Rows recorded through MQTT and Node-RED:")
         for table, count in counts.items():
             print(f"  {table:<21} {count}")
@@ -55,12 +59,30 @@ def main():
             acked = {row[0] for row in conn.execute(
                 "SELECT command_id FROM sim_commands WHERE direction='ack' AND accepted=1")}
             checks["virtual command acknowledged"] = bool(sent & acked)
+            if has_loop:
+                checks["command round-trip latency measured"] = conn.execute(
+                    "SELECT COUNT(*) FROM loop_metrics WHERE metric='command_round_trip_ms'"
+                ).fetchone()[0] > 0
         if args.require_review:
             reviewed = {row[0] for row in conn.execute(
                 "SELECT proposal_id FROM sim_reviews WHERE decision='accept'")}
             sent = {row[0] for row in conn.execute(
                 "SELECT command_id FROM sim_commands WHERE direction='command'")}
             checks["operator accepted command before MQTT actuation"] = bool(reviewed & sent)
+        if has_loop:
+            print("\nClosed-loop performance (processing-laptop clock):")
+            labels = {"command_round_trip_ms": "command round trip (Accept -> ACK)",
+                      "ingest_to_forecast_ms": "record received -> forecast",
+                      "forecast_compute_ms": "model compute per forecast"}
+            for metric, label in labels.items():
+                values = sorted(v for (v,) in conn.execute(
+                    "SELECT value FROM loop_metrics WHERE metric=?", (metric,)))
+                if values:
+                    p95 = values[round(0.95 * (len(values) - 1))]
+                    print(f"  {label:<38} avg {sum(values) / len(values):8.1f} ms   "
+                          f"p95 {p95:8.1f} ms   n={len(values)}")
+                else:
+                    print(f"  {label:<38} not measured in this run")
     nr_log = ROOT / "logs" / "nodered.log"
     if nr_log.exists():
         checks["Node-RED SQLite had no errors"] = "[error] [sqlite:" not in nr_log.read_text(

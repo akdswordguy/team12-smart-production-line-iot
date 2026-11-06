@@ -75,9 +75,13 @@ We record what we measured on the current repository files
 (1,520,330 / 14,492 / 1,568,736 rows) and never quote the paper's scores as
 our own.
 
-**A9. Company A and Company B are not combined.**
-Different companies. Company B has richer downtime fields but **no item
-count**, so it cannot be our throughput source. We use Company A only.
+**A9. Company A and Company B are analysed side by side, never merged.**
+They are different companies with different machines and fields. Company B
+has richer downtime fields but **no item count**, so only Company A drives
+output forecasting and the virtual-line calibration. Company B is replayed
+through its own MQTT topics, SQLite tables and analytics (next operating
+state, three-model classification study), and the two are compared only on
+a like-for-like measure: alarm share among Production-or-Alarm reports.
 
 ---
 
@@ -118,6 +122,14 @@ the same tokens need the same relative effort, and only the rate differs.
 +10% per command, never above 1.5x the configured rate, at most 6 commands
 per run, with a 30-minute cooldown. A real line cannot be sped up without
 limit, and an unbounded engine would prove nothing.
+
+**V8. Optional ML-driven arrivals (off by default).** With `--ml-arrivals`
+we assume the replayed Company A machines feed Stage 1: the active model's
+30-minute forecasts, divided by each machine's normal 30-minute output from
+the training baselines, scale arrivals between 0.7x and 1.3x. This links
+the model choice to the line decision for demonstration only. All results
+in `results/` were produced with it switched off, so their identical-arrival
+comparison is unaffected.
 
 ---
 

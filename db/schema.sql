@@ -246,3 +246,23 @@ CREATE TABLE IF NOT EXISTS company_b_forecasts (
     model TEXT NOT NULL,
     condition TEXT NOT NULL
 );
+
+
+-- ---------------------------------------------------------------------------
+-- Closed-loop performance (both timings are taken on the processing laptop's
+-- own clock, so clock differences between two laptops cannot distort them)
+--   command_round_trip_ms : operator Accept -> MQTT command -> device applies
+--                           it -> ACK back at the decision engine
+--   ingest_to_forecast_ms : Node-RED receives a record -> validates -> SQLite
+--                           write -> MQTT -> analytics -> forecast published
+--   forecast_compute_ms   : analytics features + model prediction only
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS loop_metrics (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts_replay  TEXT NOT NULL,
+    metric     TEXT NOT NULL,
+    value      REAL NOT NULL,
+    detail     TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_loop_metrics_metric ON loop_metrics (metric);

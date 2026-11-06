@@ -33,7 +33,7 @@ import random
 import time
 from collections import deque
 
-from common import CONFIG, connect, now_iso, publish, topic
+from common import CONFIG, connect, now_iso, path, publish, topic
 
 SIM = CONFIG["simulation"]
 
@@ -86,7 +86,7 @@ class Line:
     so it can also be used by scripts/tests without a broker."""
 
     def __init__(self, stage_config, arrival_rate_per_min, seed, duration,
-                 metrics_window=None):
+                 metrics_window=None, max_arrival_scale=1.0):
         if metrics_window is None:
             metrics_window = SIM["metrics_window_seconds"]
         self.stages = [
@@ -94,7 +94,15 @@ class Line:
             for i, s in enumerate(stage_config)
         ]
         self.duration = duration
-        self.arrival_rate = arrival_rate_per_min
+        # Optional ML mode: arrivals are planned at the highest allowed rate
+        # and thinned to the current scale (1.0 = configured rate). With the
+        # default max_arrival_scale=1.0 nothing is thinned, so the standard
+        # line and its identical-arrivals comparison are unchanged.
+        self.max_arrival_scale = float(max_arrival_scale)
+        self.arrival_scale = 1.0
+        self.arrival_rate = arrival_rate_per_min * self.max_arrival_scale
+        self.thin_rng = random.Random(seed + 2)
+        self.tokens_arrived = 0
 
         # Two separate random streams so changing one does not disturb
         # the other. Both are seeded, so every run is reproducible.
@@ -142,9 +150,13 @@ class Line:
         # --- 1. arrivals join the first stage's queue -----------------------
         while (self.next_arrival < len(self.arrivals)
                and self.arrivals[self.next_arrival] <= second):
+            self.next_arrival += 1
+            if (self.max_arrival_scale > 1.0
+                    and self.thin_rng.random() > self.arrival_scale / self.max_arrival_scale):
+                continue                      # thinned away by the ML scale
             token = self._new_token(second)
             self.stages[0].queue.append(token)
-            self.next_arrival += 1
+            self.tokens_arrived += 1
 
         # --- 2. finish any token whose service time is up -------------------
         # Walk the stages backwards so a token can move on in the same second
@@ -242,8 +254,10 @@ class Line:
                 len(self.finished) / (elapsed / 3600.0), 2),
             "avg_wait_seconds": round(sum(waits) / len(waits), 1) if waits else 0.0,
             "tokens_in_system": (
-                self.next_arrival - len(self.finished)
+                self.tokens_arrived - len(self.finished)
             ),
+            "arrival_scale": round(self.arrival_scale, 3),
+            "arrival_source": ML_ARRIVALS["model"] if ML_ARRIVALS["enabled"] else None,
         }
 
 
@@ -253,6 +267,56 @@ class Line:
 line = None
 mqtt_client = None
 shift_over = False
+
+# Optional "ML drives the line" mode (off unless TEAM12_ML_ARRIVALS=1).
+# The active model's 30-minute output forecasts for the replayed Company A
+# machines are compared with each machine's normal output; their mean ratio
+# scales how much material arrives at Stage 1 (bounded to 0.7x-1.3x).
+ML_SCALE_MIN, ML_SCALE_MAX = 0.7, 1.3
+ML_ARRIVALS = {"enabled": False, "forecasts": {}, "reference": {}, "model": None}
+
+
+def normal_30min_output():
+    """Each machine's typical 30-minute output from the training baselines."""
+    baseline = json.loads(path("baseline").read_text())
+    slots = CONFIG["ml"]["horizon_minutes"] / 5.0
+    reference = {}
+    for asset, hours in baseline.items():
+        medians = sorted(h["median_items_per_slot"] for h in hours.values()
+                         if isinstance(h, dict) and "median_items_per_slot" in h)
+        if medians:
+            reference[int(asset)] = medians[len(medians) // 2] * slots
+    return reference
+
+
+def ml_arrival_scale(forecasts, reference):
+    """Mean forecast/normal ratio over machines, bounded to the safe range."""
+    ratios = [forecasts[a] / reference[a] for a in forecasts
+              if reference.get(a, 0) > 0]
+    if not ratios:
+        return 1.0
+    return max(ML_SCALE_MIN, min(ML_SCALE_MAX, sum(ratios) / len(ratios)))
+
+
+def on_forecast(payload):
+    if not isinstance(payload, dict) or payload.get("source") != "forecast":
+        return
+    try:
+        ML_ARRIVALS["forecasts"][int(payload["asset"])] = float(payload["predicted_items"])
+    except (KeyError, TypeError, ValueError):
+        return
+    ML_ARRIVALS["model"] = payload.get("model")
+    line.arrival_scale = ml_arrival_scale(ML_ARRIVALS["forecasts"], ML_ARRIVALS["reference"])
+
+
+def on_message(client, userdata, message):
+    if message.topic.startswith(topic("forecast") + "/"):
+        try:
+            on_forecast(json.loads(message.payload.decode()))
+        except Exception:
+            pass
+        return
+    on_command(client, userdata, message)
 
 
 def on_command(client, userdata, message):
@@ -325,12 +389,19 @@ def main():
         raise SystemExit("TEAM12_SIM_SPEED must be a positive finite number")
 
     shift_over = False
+    ML_ARRIVALS["enabled"] = os.getenv("TEAM12_ML_ARRIVALS", "").lower() in ("1", "true", "yes")
     line = Line(SIM["stages"], SIM["arrival_rate_per_min"],
-                SIM["seed"], SIM["duration_seconds"])
+                SIM["seed"], SIM["duration_seconds"],
+                max_arrival_scale=ML_SCALE_MAX if ML_ARRIVALS["enabled"] else 1.0)
 
     mqtt_client = connect("line_sim")
-    mqtt_client.on_message = on_command
+    mqtt_client.on_message = on_message
     mqtt_client.subscribe(topic("sim_command"))
+    if ML_ARRIVALS["enabled"]:
+        ML_ARRIVALS["reference"] = normal_30min_output()
+        mqtt_client.subscribe(topic("forecast") + "/#")
+        print("ML-driven arrivals ON: the active model's forecasts scale Stage 1 "
+              f"arrivals between {ML_SCALE_MIN}x and {ML_SCALE_MAX}x")
     mqtt_client.loop_start()
 
     print("VIRTUAL LINE - all values below are SIMULATED")

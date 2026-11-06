@@ -55,8 +55,12 @@ actual rate change.
 
 If `broker.hivemq.com:8000` is blocked on your network, the public broker also offers MQTT over TLS on port 8883. Both laptops can try `--broker public-tls` instead of `--broker public`; do not mix profiles during a rehearsal. This computer could connect on 8000, while its outbound 8883 connection timed out.
 
+## Showing it again, and the optional ML-driven line
+
+After a replay finishes, its card offers **Replay Company A again** (or B). **Restart virtual shift** under the approval card starts a new simulated shift on the device and resets the detector, so the bottleneck can be shown again without restarting either role. Adding `--ml-arrivals` to the device command lets the active model's forecasts scale virtual-line arrivals (0.7-1.3x); see `docs/DEMO_SCRIPT.md`.
+
 ## What was verified here
 
-An earlier pre-merge version completed a full public-broker replay on 2026-11-06 using two separate project folders on one computer. The final merged version also connected to HiveMQ, trained three demo models and exercised a decision, but its public-broker test had a temporary Node-RED disconnect: 136/146 A and 1,500/1,526 B observations reached the database. The completed, included `db/team12.db` comes from a subsequent full run with the same two-folder split and a local MQTT broker; its details are in `results/MERGED_VERIFICATION.md`. `--reset-db` starts a fresh presentation run.
+On 2026-11-07 a complete run over `ws://broker.hivemq.com:8000/mqtt` used two separate project folders on one Windows laptop: 146/146 Company A and 1,526/1,526 Company B records were stored, three demo models were trained, two operator-approved Stage 2 commands were acknowledged in 0.36-0.39 s, one proposal was rejected, and `check_demo.py --require-command --require-review` passed every check. An earlier merged build had lost a few records during a temporary disconnect; Node-RED now keeps a persistent MQTT session and dashboard buttons use QoS 1. The included `db/team12.db` comes from a later complete local-broker run that also records the closed-loop timings; see `results/MERGED_VERIFICATION.md`. `--reset-db` starts a fresh presentation run.
 
 The public broker is shared and may disconnect or lose messages. Rehearse on the classroom network and both physical laptops before presenting. A local broker on the processing laptop can be used if the public broker is unreliable, provided the device laptop can reach it.

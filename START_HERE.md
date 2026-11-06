@@ -1,6 +1,6 @@
 # Team 12: teacher demo in five steps
 
-**For the free, no-payment two-laptop demo, use [docs/PUBLIC_BROKER_DEMO.md](docs/PUBLIC_BROKER_DEMO.md).** For a private HiveMQ Cloud trial, use [docs/TWO_LAPTOP_DEMO.md](docs/TWO_LAPTOP_DEMO.md). The steps below are for a local rehearsal on one laptop.
+**For the presentation, follow [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md)** (two laptops, or one laptop with two folders). **For the free, no-payment broker setup, see [docs/PUBLIC_BROKER_DEMO.md](docs/PUBLIC_BROKER_DEMO.md).** For a private HiveMQ Cloud trial, use [docs/TWO_LAPTOP_DEMO.md](docs/TWO_LAPTOP_DEMO.md). The steps below are for a local rehearsal on one laptop.
 
 This folder contains the unchanged Company A CSV and Company B ZIP, prepared training features,
 three-model evaluation, selected trained model, Node-RED flow and a working
@@ -49,7 +49,12 @@ Run the logic check once:
    shows the evidence. Click **Accept and send command** to update the
    virtual machine, or **Reject action** to leave it unchanged. Show the
    MQTT command, actuator acknowledgement and later rate in the stage table.
-6. Open a second PowerShell terminal in this folder and run:
+   **Restart virtual shift** starts a new simulated shift if you want to show
+   the bottleneck again.
+6. Point to **Closed-loop performance**: command round trip, record-to-forecast
+   latency, acknowledgements, operator decisions, command spacing and the
+   simulated control effect, all read from SQLite.
+7. Open a second PowerShell terminal in this folder and run:
 
    ```powershell
    .\.venv\Scripts\python.exe scripts\show_database.py

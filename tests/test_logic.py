@@ -471,13 +471,120 @@ def test_validation_rejects_boolean_status():
          "items": 3, "status": True})
     assert not ok and "status" in reason
 
+def test_command_round_trip_is_timed_on_one_clock():
+    import decision
+    decision.command_sent_at.clear()
+    decision.command_sent_at["abcd1234"] = 100.0
+    metric = decision.round_trip_metric("abcd1234", True, now=100.4)
+    assert metric["metric"] == "command_round_trip_ms" and metric["value"] == 400.0
+    assert "accepted" in metric["detail"]
+    assert decision.round_trip_metric("abcd1234", True) is None   # counted once
+    assert decision.round_trip_metric("unknown1", True) is None   # never sent here
+
+
+def test_command_gap_is_measured_within_one_shift():
+    import decision
+    memory = decision.new_memory()
+    assert decision.command_gap_metric(memory, 11160) is None          # first command
+    gap = decision.command_gap_metric(memory, 13260)
+    assert gap["metric"] == "command_gap_s" and gap["value"] == 2100.0
+    fresh = decision.new_memory()                                       # restarted shift
+    assert decision.command_gap_metric(fresh, 11160) is None
+
+
+def test_forecast_latency_uses_node_red_receive_stamp():
+    import time
+    started = time.perf_counter()
+    metrics = dict(analytics.latency_metrics(started, received_ms=1000.0, now_ms=1085.0))
+    assert metrics["ingest_to_forecast_ms"] == 85.0
+    assert metrics["forecast_compute_ms"] >= 0
+    # A missing or impossible stamp gives no end-to-end figure, never a wrong one.
+    assert "ingest_to_forecast_ms" not in dict(analytics.latency_metrics(started))
+    assert "ingest_to_forecast_ms" not in dict(
+        analytics.latency_metrics(started, received_ms=5000.0, now_ms=1000.0))
+
+
+def test_new_replay_run_restarts_a_machines_window():
+    old = (dict(analytics.history), dict(analytics.last_run_id), dict(analytics.low_streak))
+    try:
+        analytics.history.clear(); analytics.last_run_id.clear()
+        assert analytics.start_new_run_if_needed(5, "run1") is False   # first run
+        analytics.history[5] = ["old window"]
+        analytics.low_streak[5] = 3
+        assert analytics.start_new_run_if_needed(5, "run1") is False   # same run
+        assert analytics.history[5] == ["old window"]
+        assert analytics.start_new_run_if_needed(5, "run2") is True    # replayed again
+        assert 5 not in analytics.history and 5 not in analytics.low_streak
+    finally:
+        analytics.history.clear(); analytics.history.update(old[0])
+        analytics.last_run_id.clear(); analytics.last_run_id.update(old[1])
+        analytics.low_streak.clear(); analytics.low_streak.update(old[2])
+
+
+def test_restarted_virtual_shift_resets_the_detector():
+    import json
+    import decision
+
+    class Msg:
+        def __init__(self, topic, payload):
+            self.topic, self.payload = topic, json.dumps(payload).encode()
+    decision.memory["commands_sent"] = 4
+    decision.last_check_second = 20000
+    decision.pending = {"command_id": "deadbeef"}
+    decision.on_message(None, None, Msg(decision.topic("sim_state"),
+                                        {"sim_second": 60, "stages": []}))
+    assert decision.memory["commands_sent"] == 0
+    assert decision.pending is None and decision.last_check_second == 60
+
+
+def test_ml_arrivals_mode_is_off_by_default_and_bounded():
+    import line_sim
+    from common import CONFIG
+    sim = CONFIG["simulation"]
+    plain = line_sim.Line(sim["stages"], sim["arrival_rate_per_min"], sim["seed"], 7200)
+    again = line_sim.Line(sim["stages"], sim["arrival_rate_per_min"], sim["seed"], 7200)
+    assert plain.arrivals == again.arrivals          # identical-arrivals comparison kept
+    for _ in range(7200):
+        plain.step()
+    assert plain.tokens_arrived == plain.next_arrival  # nothing thinned by default
+    reference = {0: 18.0, 1: 18.0}
+    assert line_sim.ml_arrival_scale({0: 18.0, 1: 18.0}, reference) == 1.0
+    assert line_sim.ml_arrival_scale({0: 90.0, 1: 90.0}, reference) == line_sim.ML_SCALE_MAX
+    assert line_sim.ml_arrival_scale({0: 0.0, 1: 0.0}, reference) == line_sim.ML_SCALE_MIN
+    assert line_sim.ml_arrival_scale({}, reference) == 1.0
+    low = line_sim.Line(sim["stages"], sim["arrival_rate_per_min"], sim["seed"], 7200,
+                        max_arrival_scale=line_sim.ML_SCALE_MAX)
+    low.arrival_scale = line_sim.ML_SCALE_MIN
+    for _ in range(7200):
+        low.step()
+    assert 0 < low.tokens_arrived < low.next_arrival   # forecasts below normal admit less
+
+
+def test_closed_loop_panel_and_restart_controls_are_wired():
+    import json
+    from common import CONFIG, ROOT
+    nodes = {n["id"]: n for n in json.loads((ROOT / "nodered" / "flow.json").read_text(encoding="utf-8"))}
+    assert CONFIG["topics"]["perf_metric"] == "team12/perf/metric"
+    assert nodes["in_perf"]["topic"] == "team12/perf/metric"
+    assert nodes["in_perf"]["wires"] == [["fn_perf"]] and nodes["fn_perf"]["wires"] == [["sql_bind"]]
+    assert "INSERT INTO loop_metrics" in nodes["fn_perf"]["func"]
+    assert "'command_gap_s'" in nodes["fn_perf"]["func"]
+    assert "m.received_ms = receivedMs" in nodes["fn_validate"]["func"]
+    assert "AS rt_avg" in nodes["fn_db_queries"]["func"] and "AS a_run" in nodes["fn_db_queries"]["func"]
+    assert "restart_line" in nodes["fn_ui_action"]["func"]
+    panel = nodes["ui_overview"]["format"]
+    assert "id='closed-loop-performance'" in panel
+    assert "Restart virtual shift" in panel and "Replay Company A again" in panel
+    assert "CREATE TABLE IF NOT EXISTS loop_metrics" in (ROOT / "db" / "schema.sql").read_text()
+
+
 def test_switching_model_refreshes_forecasts_immediately():
     # A model switch after the replay ends must still update the forecast panel.
     calls, old = [], (analytics.history, analytics.try_forecast, analytics.compute_metrics, analytics.MODEL)
     try:
         analytics.history = {0: [{"x": 1}], 1: [{"x": 1}], 8: []}
         analytics.compute_metrics = lambda asset: {"coverage": 1.0 if asset == 0 else 0.5}
-        analytics.try_forecast = lambda client, asset: calls.append(asset)
+        analytics.try_forecast = lambda client, asset, **kw: calls.append(asset)
         analytics.MODEL = {"name": "demo_ridge"}
         assert analytics.refresh_forecasts(None) == 1
         assert calls == [0]          # only full-coverage windows are re-forecast

@@ -25,9 +25,16 @@ def forecast(record, bundle):
             "model": bundle["name"], "condition": "next report exactly 1 minute later"}
 
 
+last_run_id = {}
+
+
 def update(record):
     asset = record["asset"]
     stamp = datetime.fromisoformat(record["ts_dataset"])
+    run_id = record.get("run_id")
+    if run_id is not None and last_run_id.get(asset) != run_id:
+        last_run_id[asset] = run_id
+        history.pop(asset, None)          # a new replay run starts afresh
     rows = history.setdefault(asset, deque())
     rows.append((stamp, record["status"]))
     if len(rows) > 1 and stamp < rows[-2][0]:

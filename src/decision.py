@@ -20,6 +20,7 @@ Run:  python src/decision.py
 """
 
 import json
+import time
 import uuid
 
 from common import CONFIG, connect, now_iso, publish, topic
@@ -38,6 +39,7 @@ def new_memory():
         "commands_sent": 0,
         "last_command_second": -10 ** 9,
         "last_advice": None,     # so the same advice is not repeated forever
+        "last_sent_second": None,  # simulated time of the last command sent this shift
     }
 
 
@@ -202,6 +204,39 @@ def choose_action(state, memory):
 memory = new_memory()
 last_check_second = -10 ** 9
 pending = None
+command_sent_at = {}   # command_id -> time.monotonic() when the command left
+
+
+def command_gap_metric(memory, sim_second):
+    """Simulated seconds since the previous command in the SAME shift.
+
+    A restarted shift clears memory, so gaps never span two shifts. The
+    cooldown guarantees the value; reporting it shows there was no rapid
+    switching back and forth.
+    """
+    previous = memory.get("last_sent_second")
+    memory["last_sent_second"] = sim_second
+    if previous is None:
+        return None
+    return {"source": "simulated", "metric": "command_gap_s",
+            "value": float(sim_second - previous), "detail": "same shift",
+            "ts_replay": now_iso()}
+
+
+def round_trip_metric(command_id, accepted, now=None):
+    """Milliseconds from sending a command to receiving its ACK, or None.
+
+    Both ends are measured here on one clock, so the figure is valid even
+    when the virtual device runs on another laptop with a different clock.
+    """
+    started = command_sent_at.pop(command_id, None)
+    if started is None:
+        return None
+    now = time.monotonic() if now is None else now
+    return {"source": "simulated", "metric": "command_round_trip_ms",
+            "value": round((now - started) * 1000.0, 1),
+            "detail": f"{command_id} {'accepted' if accepted else 'refused'}",
+            "ts_replay": now_iso()}
 
 
 def on_message(client, userdata, message):
@@ -230,7 +265,11 @@ def on_message(client, userdata, message):
             memory["last_command_second"] = max(last_check_second, pending["sim_second"])
             publish(client, topic("sim_review"), review)
             command = {**pending, "ts_replay": now_iso()}
+            command_sent_at[command["command_id"]] = time.monotonic()
             publish(client, topic("sim_command"), command)
+            gap = command_gap_metric(memory, pending["sim_second"])
+            if gap is not None:
+                publish(client, topic("perf_metric"), gap)
             print(f"Operator accepted {pending['command_id']}; command sent", flush=True)
         else:
             memory["commands_sent"] -= 1
@@ -290,6 +329,10 @@ def on_message(client, userdata, message):
         mark = "accepted" if payload.get("accepted") else "REFUSED"
         print(f"  [ack] command {payload.get('command_id')} {mark}: "
               f"{payload.get('reason')}")
+        metric = round_trip_metric(payload.get("command_id"), payload.get("accepted"))
+        if metric is not None:
+            publish(client, topic("perf_metric"), metric)
+            print(f"  [latency] command round trip {metric['value']} ms", flush=True)
         return
 
     if message.topic != topic("sim_state"):
@@ -297,6 +340,14 @@ def on_message(client, userdata, message):
 
     # Only check the line every so often.
     second = payload.get("sim_second", 0)
+    if second < last_check_second:
+        # The virtual shift was restarted from the dashboard: forget the
+        # previous shift's streaks, cooldown and command budget.
+        memory.clear()
+        memory.update(new_memory())
+        last_check_second = -10 ** 9
+        pending = None
+        print("  [shift] virtual line restarted - detector reset", flush=True)
     if second - last_check_second < DEC["check_every_seconds"]:
         return
     last_check_second = second

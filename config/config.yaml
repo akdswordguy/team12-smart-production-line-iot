@@ -41,6 +41,7 @@ topics:
   company_b_forecast: "team12/observed_b/forecast" # + /<asset> next reported state
   replay_control:   "team12/replay/control"    # dashboard -> device, start A or B
   replay_status:    "team12/replay/status"     # device -> dashboard, per-company state
+  perf_metric:      "team12/perf/metric"       # services -> Node-RED, closed-loop timings
 
 
 # -----------------------------------------------------------------------------

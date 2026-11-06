@@ -16,6 +16,7 @@ Run:  python src/analytics.py
 
 import json
 import math
+import time
 from collections import deque
 from datetime import datetime, timezone
 
@@ -42,6 +43,25 @@ alarm_streak = {}
 last_alert_kind = {}
 # Counters for the dashboard.
 counters = {"accepted": 0, "rejected": 0}
+
+# Replay run currently feeding each machine. A replay started again from the
+# dashboard re-sends the same dataset timestamps under a new run_id; without
+# a reset they would all look "late" and be ignored.
+last_run_id = {}
+
+
+def start_new_run_if_needed(asset, run_id):
+    """Clear one machine's live state when a new replay run begins."""
+    if run_id is None or last_run_id.get(asset) == run_id:
+        return False
+    is_restart = asset in last_run_id
+    last_run_id[asset] = run_id
+    if is_restart:
+        history.pop(asset, None)
+        low_streak.pop(asset, None)
+        alarm_streak.pop(asset, None)
+        last_alert_kind.pop(asset, None)
+    return is_restart
 
 
 # ---------------------------------------------------------------------------
@@ -276,7 +296,24 @@ def guard_prediction(bundle, asset, raw_prediction):
     return (min(prediction, limit) if guarded else prediction), guarded, limit
 
 
-def try_forecast(client, asset):
+def latency_metrics(started, received_ms=None, now_ms=None):
+    """Closed-loop timings for one forecast, all on this laptop's clock.
+
+    forecast_compute_ms: feature building + model prediction.
+    ingest_to_forecast_ms: Node-RED received the record -> validated it ->
+    stored it in SQLite -> republished it -> analytics -> forecast ready.
+    Node-RED runs on the same laptop as analytics, so both stamps share a clock.
+    """
+    metrics = [("forecast_compute_ms", (time.perf_counter() - started) * 1000.0)]
+    if isinstance(received_ms, (int, float)) and not isinstance(received_ms, bool):
+        now_ms = time.time() * 1000.0 if now_ms is None else now_ms
+        delay = now_ms - received_ms
+        if 0 <= delay < 60_000:          # ignore impossible clock values
+            metrics.append(("ingest_to_forecast_ms", delay))
+    return [(name, round(value, 2)) for name, value in metrics]
+
+
+def try_forecast(client, asset, received_ms=None, detail="live record"):
     """Publish a forecast. Silently skipped when no model is saved yet.
 
     MODEL is the bundle saved by ml_train.py: the fitted model plus the
@@ -285,6 +322,7 @@ def try_forecast(client, asset):
     """
     if MODEL is None or len(history[asset]) < CONFIG["ml"]["lookback_slots"]:
         return
+    started = time.perf_counter()
     try:
         import ml_features
         rows = list(history[asset])[-CONFIG["ml"]["lookback_slots"]:]
@@ -303,6 +341,11 @@ def try_forecast(client, asset):
             "ts_dataset": rows[-1]["ts_dataset"],
             "ts_replay": now_iso(),
         })
+        for name, value in latency_metrics(started, received_ms):
+            publish(client, topic("perf_metric"), {
+                "source": "forecast", "metric": name, "value": value,
+                "detail": f"machine {asset} {MODEL['name']} {detail}",
+                "ts_replay": now_iso()})
     except Exception as e:
         print(f"  (forecast skipped for machine {asset}: {e})")
 
@@ -330,6 +373,8 @@ def on_message(client, userdata, message):
         return
 
     asset = msg["asset"]
+    if start_new_run_if_needed(asset, msg.get("run_id")):
+        print(f"  machine {asset}: new replay run {msg.get('run_id')} - window restarted")
     accepted, is_new_slot = update_history(asset, msg)
     if not accepted:
         counters["rejected"] += 1
@@ -373,7 +418,7 @@ def on_message(client, userdata, message):
     last_alert_kind[asset] = new_kind
 
     if metrics["coverage"] >= 1.0:
-        try_forecast(client, asset)
+        try_forecast(client, asset, received_ms=msg.get("received_ms"))
 
 
 def refresh_forecasts(client):
@@ -385,7 +430,7 @@ def refresh_forecasts(client):
     refreshed = 0
     for asset in sorted(history):
         if history[asset] and compute_metrics(asset)["coverage"] >= 1.0:
-            try_forecast(client, asset)
+            try_forecast(client, asset, detail="model switch")
             refreshed += 1
     print(f"  re-forecast {refreshed} machine(s) with {MODEL['name']}", flush=True)
     return refreshed
