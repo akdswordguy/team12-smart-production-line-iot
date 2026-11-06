@@ -219,8 +219,9 @@ def baseline_predictions(train, frame, name):
 # The three model families. Each entry builds a FRESH, unfitted model, so
 # cross-validation and the final fit use identical settings.
 # ---------------------------------------------------------------------------
-def model_specs(ridge_alpha):
-    seed = ML["random_state"]
+def model_specs(ridge_alpha, seed=None):
+    # seed=None keeps the fixed, reproducible study seed from config.yaml.
+    seed = ML["random_state"] if seed is None else int(seed)
     return {
         "ridge": {
             "family": "traditional ML",

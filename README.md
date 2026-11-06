@@ -94,7 +94,7 @@ python scripts/compare_companies.py    # fixed A/B monthly interruption comparis
 python scripts/update_company_dashboard.py # refresh A/B and B-model panels
 python scripts/update_dashboard.py     # refresh saved scores on dashboard
 python src/scenario_compare.py         # virtual-line before/after
-python tests/test_logic.py             # 56 tests
+python tests/test_logic.py             # 58 tests
 ```
 
 The unchanged raw CSV and prepared features are included in this Desktop
@@ -210,7 +210,7 @@ nodered/flow.json       the Node-RED flow loaded by the runner
 results/                audit, model and scenario outputs
 scripts/                dataset fetch, broker, db init, demo runner
 src/                    the services (one job per file)
-tests/test_logic.py     56 tests, no pytest required
+tests/test_logic.py     58 tests, no pytest required
 ```
 
 ---

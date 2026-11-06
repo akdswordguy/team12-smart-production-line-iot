@@ -185,7 +185,8 @@ CREATE TABLE IF NOT EXISTS ml_demo_runs (
     active_mae REAL,
     idle_mae REAL,
     overall_mae REAL,
-    train_seconds REAL
+    train_seconds REAL,
+    seed INTEGER            -- random seed used; NULL in older runs = config seed
 );
 
 CREATE TABLE IF NOT EXISTS sim_reviews (

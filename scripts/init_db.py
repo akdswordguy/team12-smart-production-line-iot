@@ -38,6 +38,9 @@ def main():
         conn.execute("ALTER TABLE forecasts ADD COLUMN prediction_guarded INTEGER NOT NULL DEFAULT 0")
     if "guard_limit" not in forecast_columns:
         conn.execute("ALTER TABLE forecasts ADD COLUMN guard_limit REAL")
+    demo_columns = {row[1] for row in conn.execute("PRAGMA table_info(ml_demo_runs)")}
+    if "seed" not in demo_columns:
+        conn.execute("ALTER TABLE ml_demo_runs ADD COLUMN seed INTEGER")
     conn.commit()
 
     tables = conn.execute(

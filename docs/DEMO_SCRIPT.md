@@ -63,6 +63,11 @@ back from the database every four seconds.
   forecasts**. The *Next 30-minute output* panel changes immediately to
   Ridge's forecast. **Restore full-study winner** switches back. Identical
   scores on every click are expected: same data, split and seed.
+  **Train with new seed** on gradient boosting or the neural network
+  retrains with a random seed; after a few clicks the card shows the mean
+  and range across seeds. Say: "the range shows how much of a difference is
+  just randomness; we never pick the luckiest seed." Ridge has no
+  randomness, so its score never changes.
 
 **4. The bottleneck (diagram steps 5, 7, 8).** About three minutes after
 Start the device slows Stage 2. The *Virtual queue trend* climbs and
@@ -96,7 +101,9 @@ Every line should say PASS, followed by the measured latencies.
 
 ## Optional: let the chosen model drive the line
 
-Add `--ml-arrivals` to the **device** command. The active model's 30-minute
+Add `--ml-arrivals` to the **device** command (in the one-laptop
+`hivemq-test` setup, start `2b_start_device_ml.cmd` instead of
+`2_start_device.cmd`). The active model's 30-minute
 forecasts for the replayed machines are compared with each machine's
 normal output (training baselines); the mean ratio scales how much
 material reaches Stage 1, bounded between 0.7× and 1.3×. The Stage status

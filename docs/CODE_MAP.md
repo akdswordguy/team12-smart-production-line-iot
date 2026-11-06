@@ -22,7 +22,8 @@ nodered/flow.json         the Node-RED flow (loaded by run_demo.py)
 db/schema.sql             the database, observed and simulated kept apart
 scripts/add_closed_loop_panel.py  installs the closed-loop panel, timing storage,
                           replay-again and shift-restart controls in the flow
-tests/test_logic.py       56 tests of the logic we claim in the viva
+scripts/add_seed_controls.py  adds "Train with new seed" and the across-seeds spread
+tests/test_logic.py       58 tests of the logic we claim in the viva
 ```
 
 ---

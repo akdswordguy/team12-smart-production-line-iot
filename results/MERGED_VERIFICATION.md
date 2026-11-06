@@ -96,3 +96,11 @@ timings; the command round trip was 1.4 ms on the local broker.
 Record-to-forecast latency is machine-dependent; quote the values from your
 own rehearsal. All 13 checks of `check_demo.py --require-command
 --require-review` passed, and the unit suite passed 56/56.
+
+The same day the full build was run over the HiveMQ public broker on one
+laptop: 146/146 A and 1,526/1,526 B stored, two accepted commands with a
+601 ms average round trip (max 640 ms), record-to-forecast 252 ms average
+(p95 315 ms), one rejected proposal, shift restart and Replay Company A
+again, and all 13 checks passed. A later addition, **Train with new seed**,
+records each run's seed and shows the score spread across seeds; the unit
+suite then passed 58/58.

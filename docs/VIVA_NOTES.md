@@ -345,6 +345,11 @@ forecast being published, again on one clock.
 Yes. Each click fits a new model; the fit time changes and a new row is
 written to `ml_demo_runs`. The score repeats because the data slice, the
 chronological split and the random seed are fixed. That is reproducibility.
+**Train with new seed** shows the other side: on the quick slice, gradient
+boosting moved between about 2.34 and 2.74 across six seeds and the neural
+network between 2.80 and 3.02, while Ridge never moved. A difference
+smaller than that range between two models is not meaningful, and we never
+keep the luckiest seed, because that would tune to the validation data.
 
 ## Q: Does the chosen model affect the bottleneck decision?
 

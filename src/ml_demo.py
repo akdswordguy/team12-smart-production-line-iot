@@ -4,6 +4,7 @@ All three buttons use the same small, chronological, purged subset. These
 scores are deliberately separate from the full offline model-selection study.
 """
 import json
+import random
 import threading
 import time
 from functools import lru_cache
@@ -40,11 +41,24 @@ def demo_data():
     return train, valid, columns
 
 
-def train_one(name):
+def resolve_seed(requested):
+    """The fixed study seed by default; a fresh random one for "new".
+
+    Ridge regression has no randomness, so its seed never changes its score.
+    """
+    if requested == "new":
+        return random.SystemRandom().randint(1, 99999)
+    if isinstance(requested, int) and not isinstance(requested, bool) and 0 <= requested <= 2**31 - 1:
+        return requested
+    return int(CONFIG["ml"]["random_state"])
+
+
+def train_one(name, seed=None):
     if name not in MODELS:
         raise ValueError("Unknown model")
+    seed = resolve_seed(seed)
     train, valid, columns = demo_data()
-    spec = model_specs(1.0)[name]
+    spec = model_specs(1.0, seed=seed)[name]
     start = time.perf_counter()
     model = fit_quietly(spec["build"](), train[columns].to_numpy(),
                         train[TARGET].to_numpy())
@@ -61,7 +75,7 @@ def train_one(name):
     active = actual > 0
     idle = ~active
     result = {
-        "model": name, "family": spec["family"], "status": "trained",
+        "model": name, "family": spec["family"], "status": "trained", "seed": seed,
         "source": "demo_subset", "train_rows": len(train),
         "valid_rows": len(valid), "active_valid_rows": int(active.sum()),
         "train_seconds": round(train_seconds, 2),
@@ -77,6 +91,7 @@ def train_one(name):
               "feature_columns": columns,
               "horizon_minutes": CONFIG["ml"]["horizon_minutes"],
               "active_mae": result["active_mae"],
+              "seed": seed,
               "provenance": "small_demo_subset",
               "forecast_limit_by_asset": limits}
     destination = DEMO_DIR / f"{name}.joblib"
@@ -89,13 +104,13 @@ def train_one(name):
 def main():
     client = connect("ml-demo")
 
-    def work(name):
+    def work(name, seed):
         try:
             publish(client, topic("ml_train_result"), {
                 "model": name, "status": "training", "ts_replay": now_iso()})
-            result = train_one(name)
+            result = train_one(name, seed)
             publish(client, topic("ml_train_result"), result)
-            print(f"Trained {name}: active MAE {result['active_mae']}", flush=True)
+            print(f"Trained {name} (seed {result['seed']}): active MAE {result['active_mae']}", flush=True)
         except Exception as exc:
             publish(client, topic("ml_train_result"), {
                 "model": name, "status": "error", "error": str(exc),
@@ -108,6 +123,7 @@ def main():
         try:
             request = json.loads(message.payload.decode())
             name = request.get("model")
+            seed = request.get("seed")
         except Exception:
             return
         if name not in MODELS:
@@ -118,7 +134,7 @@ def main():
                 "error": "Another training run is in progress; retry shortly.",
                 "ts_replay": now_iso()})
             return
-        threading.Thread(target=work, args=(name,), daemon=True).start()
+        threading.Thread(target=work, args=(name, seed), daemon=True).start()
 
     client.on_message = on_message
     client.subscribe(topic("ml_train_request"))

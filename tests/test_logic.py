@@ -482,6 +482,33 @@ def test_command_round_trip_is_timed_on_one_clock():
     assert decision.round_trip_metric("unknown1", True) is None   # never sent here
 
 
+def test_new_seed_is_random_but_default_seed_is_reproducible():
+    import ml_demo
+    import ml_train
+    from common import CONFIG
+    assert ml_demo.resolve_seed(None) == CONFIG["ml"]["random_state"]
+    assert ml_demo.resolve_seed(7) == 7
+    assert ml_demo.resolve_seed("junk") == CONFIG["ml"]["random_state"]
+    seeds = {ml_demo.resolve_seed("new") for _ in range(20)}
+    assert len(seeds) > 1 and all(1 <= s <= 99999 for s in seeds)
+    nn = ml_train.model_specs(1.0, seed=123)["neural_network"]["build"]()
+    assert nn.steps[-1][1].random_state == 123
+    gb = ml_train.model_specs(1.0)["gradient_boosting"]["build"]()
+    assert gb.random_state == CONFIG["ml"]["random_state"]
+
+
+def test_seed_controls_store_the_seed_and_show_the_spread():
+    import json
+    from common import ROOT
+    nodes = {n["id"]: n for n in json.loads((ROOT / "nodered" / "flow.json").read_text(encoding="utf-8"))}
+    assert "$seed" in nodes["fn_ml_train"]["func"]
+    assert "body.seed='new'" in nodes["fn_ui_action"]["func"]
+    assert "AS n_seeds" in nodes["fn_db_queries"]["func"]
+    card = nodes["ui_overview"]["format"]
+    assert "Train with new seed" in card and "across {{msg.payload.demoModels[m.id].n_seeds}} seeds" in card
+    assert "seed INTEGER" in (ROOT / "db" / "schema.sql").read_text()
+
+
 def test_command_gap_is_measured_within_one_shift():
     import decision
     memory = decision.new_memory()
