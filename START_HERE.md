@@ -1,5 +1,7 @@
 # Team 12: teacher demo in five steps
 
+**Easiest on Windows: double-click the launchers in [launchers/windows](launchers/windows/README.md)** (`1_start_processing.cmd`, then `2_start_device.cmd`, then open http://localhost:1880/ui). They run the HiveMQ demo on one laptop or two.
+
 **For the presentation, follow [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md)** (two laptops, or one laptop with two folders). **For the free, no-payment broker setup, see [docs/PUBLIC_BROKER_DEMO.md](docs/PUBLIC_BROKER_DEMO.md).** For a private HiveMQ Cloud trial, use [docs/TWO_LAPTOP_DEMO.md](docs/TWO_LAPTOP_DEMO.md). The steps below are for a local rehearsal on one laptop.
 
 This folder contains the unchanged Company A CSV and Company B ZIP, prepared training features,

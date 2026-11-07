@@ -1,0 +1,2 @@
+launchers/windows/*.cmd text eol=crlf
+launchers/windows/*.ps1 text eol=crlf

@@ -7,6 +7,10 @@ decision engine → MQTT control command → actuator acknowledgement.
 It works on **two laptops** or on **one laptop with two project folders**.
 Either way the two roles talk only through the HiveMQ public broker.
 
+On Windows, `launchers/windows/` does the setup and start steps below with
+double-clicks (`1_start_processing.cmd`, then `2_start_device.cmd` or
+`2b_start_device_ml.cmd`), including one-laptop runs.
+
 ## Once, before the day
 
 1. Extract the **same** project ZIP for each role (two laptops, or two

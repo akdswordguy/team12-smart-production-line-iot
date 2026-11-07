@@ -35,6 +35,13 @@ training features, replay slice, trained model and measured results. No other
 dataset is substituted. The raw CSV's SHA-256 checksum is checked by
 `scripts/fetch_dataset.py` and recorded in `PACKAGE_MANIFEST.json` when packaged.
 
+### Windows, no typing: double-click launchers
+
+`launchers/windows/` has `1_start_processing.cmd`, `2_start_device.cmd`
+(or `2b_start_device_ml.cmd`) and `0_stop_everything.cmd`. They install on first
+run and start the HiveMQ demo on one laptop or two; see
+[launchers/windows/README.md](launchers/windows/README.md).
+
 ### Windows (PowerShell, Python 3.12 and Node.js; the Codex Python runtime also works)
 
 ```powershell

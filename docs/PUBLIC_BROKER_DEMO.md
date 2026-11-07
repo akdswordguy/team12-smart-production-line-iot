@@ -4,6 +4,14 @@ This path needs **no HiveMQ account, license, payment card, hostname entry or MQ
 
 The tested connection here is MQTT over WebSocket at `ws://broker.hivemq.com:8000/mqtt`. It is **unencrypted and unauthenticated**. Everyone using the public broker can subscribe to topics, and a random-looking topic root is only collision avoidance, not access control. Use the supplied public manufacturing dataset and the virtual line only. Never put passwords, private data or a physical actuator on this broker. HiveMQ does not guarantee uptime for its public test service.
 
+## Easiest: double-click launchers
+
+`launchers/windows/` runs everything below without typing: `1_start_processing.cmd`
+on the processing laptop, `2_start_device.cmd` (or `2b_start_device_ml.cmd` for the
+ML-driven line) on the device laptop, and `0_stop_everything.cmd` to stop. On one
+laptop, run both there: the device role runs from a sibling `<folder>-device` copy
+that the launcher keeps up to date. See `launchers/windows/README.md`.
+
 ## Prepare once
 
 1. Extract the same project ZIP on both laptops. Keep both connected to the internet.

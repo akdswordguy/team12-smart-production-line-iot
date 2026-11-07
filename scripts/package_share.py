@@ -20,7 +20,7 @@ ALLOWED_ROOT_FILES = {
     ".gitignore", "README.md", "SHARE_THIS_FIRST.md", "START_HERE.md",
     "requirements.txt",
 }
-ALLOWED_FOLDERS = {"config", "data", "db", "docs", "nodered", "results", "scripts", "src", "tests"}
+ALLOWED_FOLDERS = {"config", "data", "db", "docs", "launchers", "nodered", "results", "scripts", "src", "tests"}
 EXCLUDED_DIRS = {".venv", "node_modules", "__pycache__", ".git", "logs"}
 EXCLUDED_NAMES = {
     "flow.local.json", ".config.nodes.json", ".config.nodes.json.backup",
