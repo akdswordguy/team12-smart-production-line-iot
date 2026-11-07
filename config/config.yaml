@@ -144,6 +144,17 @@ simulation:
   # Raise it for steadier numbers, lower it for faster reaction.
   metrics_window_seconds: 900
 
+  # Optional ML-driven line (two_laptop.py device --ml-driven). Each stage's
+  # capacity follows the active model's 30-minute forecast for the machine
+  # the stage was calibrated from; forecast/30 is items per minute. Demand
+  # is set near capacity so the forecasts decide which stage limits the
+  # line, and no scripted fault is used. Factors are bounded for safety.
+  ml_driven:
+    stage_machines: [0, 1, 8]     # Stage 1, 2, 3 <- machine 0, 1, 8
+    arrival_rate_per_min: 0.62
+    factor_min: 0.3
+    factor_max: 1.5
+
   # Stage rates come from results/calibration.json (capacity_proxy_used),
   # which is the p90 items/min of machines 0, 1 and 8 while producing.
   # Assigning those machines to stages 1/2/3 in this order is OUR assumption:

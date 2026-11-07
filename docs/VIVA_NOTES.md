@@ -356,9 +356,21 @@ keep the luckiest seed, because that would tune to the validation data.
 By default, no, and on purpose: the bottleneck detector works on the
 virtual line, and the dataset has no stage order or bottleneck labels to
 train on. The chosen model drives the machine forecasts and their advisory.
-With the optional `--ml-arrivals` mode, the active model's forecasts scale
-how much material reaches the line (0.7-1.3x), so a different model can
-move the bottleneck. The published results were produced without it.
+With the optional `--ml-driven` mode, each stage's capacity is its
+machine's forecast output per minute under the active model, so the stage
+the model expects to be weakest becomes the bottleneck and the proposal
+says which forecast caused it. A different model can move the bottleneck.
+The published results were produced without it.
+
+## Q: How do you know the model works during the demo?
+
+The **Live model check** panel scores every forecast against the real next
+30 minutes as soon as those records have arrived. On the replay day
+gradient boosting was off by about 0.7 items on average; after switching to
+the quick neural network the same panel showed about 2.7, which agrees with
+the offline study's choice. For Company B the live hit rate is shown next to
+a "same state as now" guess, which is just as high, so we do not claim the
+B model beats that baseline.
 
 ## Things to volunteer before you are asked
 

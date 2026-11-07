@@ -123,13 +123,17 @@ the same tokens need the same relative effort, and only the rate differs.
 per run, with a 30-minute cooldown. A real line cannot be sped up without
 limit, and an unbounded engine would prove nothing.
 
-**V8. Optional ML-driven arrivals (off by default).** With `--ml-arrivals`
-we assume the replayed Company A machines feed Stage 1: the active model's
-30-minute forecasts, divided by each machine's normal 30-minute output from
-the training baselines, scale arrivals between 0.7x and 1.3x. This links
-the model choice to the line decision for demonstration only. All results
-in `results/` were produced with it switched off, so their identical-arrival
-comparison is unaffected.
+**V8. Optional ML-driven line (off by default).** With `--ml-driven`
+each stage keeps the machine its rate was calibrated from (Stage 1, 2, 3 <-
+machine 0, 1, 8, as in the rate calibration of V5). The active model's 30-minute forecast for
+that machine, divided by 30, is what the stage can make per minute, bounded
+between 0.3x and 1.5x of its calibrated rate; an accepted command still
+raises the rate on top. Demand is set near capacity (0.62 tokens/min) and
+no fault is scripted, so the stage the model expects to be weakest becomes
+the bottleneck, and a different model can move it. In a live run the neural
+network's lower forecast for machine 0 made Stage 1 Cutting the bottleneck,
+then Stage 2 Welding. This links the model to the line decision for
+demonstration only; all results in `results/` were produced with it off.
 
 ---
 

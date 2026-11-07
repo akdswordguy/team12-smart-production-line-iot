@@ -59,9 +59,10 @@ back from the database every four seconds.
   neural network), four time-ordered folds, gradient boosting chosen. The
   table shows ML performance (MAE, RMSE) and computational performance
   (training time, prediction time, size).
-- *Interactive ML lab*: **Train demo model** on Ridge, then **Use for live
-  forecasts**. The *Next 30-minute output* panel changes immediately to
-  Ridge's forecast. **Restore full-study winner** switches back. Identical
+- *Interactive ML lab*: **Train and use** on Ridge trains it and switches
+  live forecasts in one click. A box shows each machine's forecast before
+  and after the switch, and a red dashed line marks the switch on the
+  *Forecast trend* chart. **Restore full-study winner** switches back. Identical
   scores on every click are expected: same data, split and seed.
   **Train with new seed** on gradient boosting or the neural network
   retrains with a random seed; after a few clicks the card shows the mean
@@ -76,13 +77,18 @@ action** appears, read the evidence, click **Accept and send command**, and
 show the command and the device's acknowledgement. Reject the next
 proposal to show that nothing is sent without approval.
 
-**5. Closed-loop performance.** The panel shows the command round trip
+**5. Live model check.** *Forecast vs what really happened* scores each
+forecast against the real next 30 minutes once they have arrived: the
+average error per model, a forecast-vs-actual chart and the latest checks.
+Company B shows its live next-state hit rate beside the same-state guess.
+
+**6. Closed-loop performance.** The panel shows the command round trip
 (Accept → device → ACK), record → forecast latency, model compute time,
 acknowledgement rate, operator decisions, the shortest gap between
 commands (cooldown, no rapid switching), zero actions on a healthy line,
 and the offline control effect (202 → 223 items, wait −54%).
 
-**6. Proof.** In a second PowerShell window on the processing role:
+**7. Proof.** In a second PowerShell window on the processing role:
 
 ```powershell
 .\.venv\Scripts\python.exe scripts\check_demo.py --require-command --require-review
@@ -101,15 +107,18 @@ Every line should say PASS, followed by the measured latencies.
 
 ## Optional: let the chosen model drive the line
 
-Add `--ml-arrivals` to the **device** command (in the one-laptop
+Add `--ml-driven` to the **device** command (in the one-laptop
 `hivemq-test` setup, start `2b_start_device_ml.cmd` instead of
-`2_start_device.cmd`). The active model's 30-minute
-forecasts for the replayed machines are compared with each machine's
-normal output (training baselines); the mean ratio scales how much
-material reaches Stage 1, bounded between 0.7× and 1.3×. The Stage status
-card shows the current scale and model. Switching models can then change
-which stage becomes the bottleneck. This is an extension: the standard
-results in `results/` were produced without it.
+`2_start_device.cmd`). Each stage keeps its machine (Stage 1, 2, 3 <-
+machine 0, 1, 8). The active model's 30-minute forecast for that machine
+becomes the stage's capacity, demand is set near capacity and no fault is
+scripted, so the model decides the bottleneck. The *Stage status* table
+gains a **Model capacity** column, and each proposal says which forecast
+caused it, for example "the demo_neural_network model forecasts machine 0
+at 17.9 items in 30 min, so this stage can do 0.60 tokens/min". Use
+**Train and use** to switch models during the shift and watch the queues,
+busy time and proposals change. This is an extension: the standard results
+in `results/` were produced without it.
 
 ## Backup plans
 

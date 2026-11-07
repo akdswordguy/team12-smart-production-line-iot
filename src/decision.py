@@ -184,6 +184,7 @@ def choose_action(state, memory):
     return {
         "type": "command",
         "command_id": uuid.uuid4().hex[:8],
+        "model_basis": model_basis(stage, state.get("ml_model")),
         "action": "increase_rate",
         "sim_second": second,
         "stage_index": i,
@@ -192,10 +193,21 @@ def choose_action(state, memory):
         "new_rate": round(new_rate, 3),
         "reason": (
             f"{stage['stage_name']} is the limiting stage ({evidence}). "
+            f"{model_basis(stage, state.get('ml_model'))}"
             f"Raising its rate by {DEC['rate_increase']:.0%} to "
             f"{new_rate:.2f} tokens/min (ceiling {ceiling:.2f})."
         ),
     }
+
+
+def model_basis(stage, model):
+    """In the ML-driven line, say which forecast made this stage the weakest."""
+    if stage.get("ml_forecast") is None or stage.get("ml_machine") is None:
+        return ""
+    return (f"The {model or 'active'} model forecasts machine {stage['ml_machine']} "
+            f"at {stage['ml_forecast']:.1f} items in 30 min, so this stage can do "
+            f"{stage.get('effective_rate', stage['rate_per_min']):.2f} tokens/min "
+            f"({stage.get('ml_factor', 1.0):.0%} of its calibrated rate). ")
 
 
 # ---------------------------------------------------------------------------

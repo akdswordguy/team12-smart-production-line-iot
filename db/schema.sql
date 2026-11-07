@@ -153,7 +153,8 @@ CREATE TABLE IF NOT EXISTS forecasts (
     predicted_items  REAL,
     model            TEXT NOT NULL,
     prediction_guarded INTEGER NOT NULL DEFAULT 0,
-    guard_limit      REAL
+    guard_limit      REAL,
+    ts_dataset       TEXT       -- last observed slot; the forecast covers the next 30 min
 );
 
 -- ---------------------------------------------------------------------------

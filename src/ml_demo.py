@@ -104,13 +104,17 @@ def train_one(name, seed=None):
 def main():
     client = connect("ml-demo")
 
-    def work(name, seed):
+    def work(name, seed, use):
         try:
             publish(client, topic("ml_train_result"), {
                 "model": name, "status": "training", "ts_replay": now_iso()})
             result = train_one(name, seed)
             publish(client, topic("ml_train_result"), result)
             print(f"Trained {name} (seed {result['seed']}): active MAE {result['active_mae']}", flush=True)
+            if use:
+                # "Train and use": hand the fresh model straight to live forecasting.
+                publish(client, topic("ml_select"), {"model": name})
+                print(f"Switched live forecasts to demo_{name}", flush=True)
         except Exception as exc:
             publish(client, topic("ml_train_result"), {
                 "model": name, "status": "error", "error": str(exc),
@@ -124,6 +128,7 @@ def main():
             request = json.loads(message.payload.decode())
             name = request.get("model")
             seed = request.get("seed")
+            use = request.get("use") is True
         except Exception:
             return
         if name not in MODELS:
@@ -134,7 +139,7 @@ def main():
                 "error": "Another training run is in progress; retry shortly.",
                 "ts_replay": now_iso()})
             return
-        threading.Thread(target=work, args=(name, seed), daemon=True).start()
+        threading.Thread(target=work, args=(name, seed, use), daemon=True).start()
 
     client.on_message = on_message
     client.subscribe(topic("ml_train_request"))

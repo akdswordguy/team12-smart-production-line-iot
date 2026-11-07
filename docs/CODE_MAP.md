@@ -23,7 +23,9 @@ db/schema.sql             the database, observed and simulated kept apart
 scripts/add_closed_loop_panel.py  installs the closed-loop panel, timing storage,
                           replay-again and shift-restart controls in the flow
 scripts/add_seed_controls.py  adds "Train with new seed" and the across-seeds spread
-tests/test_logic.py       58 tests of the logic we claim in the viva
+scripts/add_live_model_view.py  live forecast check, model-switch view, stage clock,
+                          decision history and Company B live hit rate
+tests/test_logic.py       60 tests of the logic we claim in the viva
 ```
 
 ---

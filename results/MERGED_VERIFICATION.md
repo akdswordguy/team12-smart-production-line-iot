@@ -83,7 +83,7 @@ for Python 3.14); the script now does.
 This build adds the `loop_metrics` table and the dashboard's
 **Closed-loop performance** panel, replay-again and **Restart virtual shift**
 controls, an immediate re-forecast when the live model is switched, and an
-optional `--ml-arrivals` mode (off by default). The standard virtual-line
+optional ML mode (off by default; now `--ml-driven`). The standard virtual-line
 results are unchanged: `scenario_compare.py` reproduces 229 arrivals and
 202 → 223 completed items exactly.
 
@@ -104,3 +104,27 @@ laptop: 146/146 A and 1,526/1,526 B stored, two accepted commands with a
 again, and all 13 checks passed. A later addition, **Train with new seed**,
 records each run's seed and shows the score spread across seeds; the unit
 suite then passed 58/58.
+
+## Live model view build — 2026-11-07
+
+This build adds **Train and use**, a model-switch marker and before/after
+table, a **Live model check** that scores each forecast against the real
+next 30 minutes, a stage table with simulated clock, queue trend and
+bottleneck highlight, a decision history, the Company B live hit rate, and
+replaces the arrivals-only ML option with `--ml-driven` (stage capacities
+follow the active model's forecasts).
+
+In a two-folder ML-driven run, **Train and use** on the neural network
+switched live forecasts in one click (machine 0: 20.6 -> 17.7 items) and the
+proposals followed the model: Stage 1 Cutting twice ("forecasts machine 0 at
+17.9 items ... 74% of its calibrated rate"), then Stage 2 Welding twice. The
+live check scored gradient boosting at 0.66 items and the neural network at
+2.66 items average error.
+
+The saved `db/team12.db` was replaced by a standard-mode run of this build:
+146 A and 1,526 B records, 129 forecasts with their dataset times, three
+demo models (seed 42), one accepted and one rejected proposal, a full
+28,800 s shift. All 14 checks of `check_demo.py --require-command
+--require-review` passed, including "forecasts scored against real data"
+(gradient boosting 0.73 items over 110 checks), and the unit suite passed
+60/60.

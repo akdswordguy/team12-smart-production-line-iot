@@ -2,6 +2,7 @@
 import argparse
 import json
 import sqlite3
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -83,6 +84,20 @@ def main():
                           f"p95 {p95:8.1f} ms   n={len(values)}")
                 else:
                     print(f"  {label:<38} not measured in this run")
+        fcols = {row[1] for row in conn.execute("PRAGMA table_info(forecasts)")}
+        if "ts_dataset" in fcols:
+            sys.path.insert(0, str(ROOT / "scripts"))
+            from add_live_model_view import LIVE_SQL, SLOTS
+            scored = {}
+            for _, _, model, _, predicted, actual, slots in conn.execute(LIVE_SQL):
+                if slots == SLOTS and actual is not None:
+                    scored.setdefault(model, []).append(abs(predicted - actual))
+            print("\nLive forecast check (forecast vs the real next 30 minutes):")
+            for model, errors in sorted(scored.items()):
+                print(f"  {model:<24} average error {sum(errors) / len(errors):5.2f} items   n={len(errors)}")
+            if not scored:
+                print("  no forecast has its full 30 minutes of data yet")
+            checks["forecasts scored against real data"] = bool(scored)
     nr_log = ROOT / "logs" / "nodered.log"
     if nr_log.exists():
         checks["Node-RED SQLite had no errors"] = "[error] [sqlite:" not in nr_log.read_text(

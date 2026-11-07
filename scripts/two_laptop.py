@@ -77,8 +77,9 @@ def main():
     parser.add_argument("--scenario", choices=("slowdown", "alarm", "healthy"), default="slowdown")
     parser.add_argument("--manual-replay", action="store_true",
                         help="wait for separate Company A and B dashboard Start buttons")
-    parser.add_argument("--ml-arrivals", action="store_true",
-                        help="optional: let the active model's forecasts scale virtual-line arrivals")
+    parser.add_argument("--ml-driven", "--ml-arrivals", dest="ml_driven", action="store_true",
+                        help="optional: each virtual stage's capacity follows the active model's "
+                             "forecast for its machine, so the model decides the bottleneck")
     args = parser.parse_args()
     if args.speed is None:
         args.speed = 60 if args.broker.startswith("public") else 200
@@ -129,9 +130,9 @@ def main():
             env["TEAM12_SCENARIO"] = "none" if args.scenario == "healthy" else args.scenario
             if args.line_speed is not None:
                 env["TEAM12_SIM_SPEED"] = str(args.line_speed)
-            if args.ml_arrivals:
-                env["TEAM12_ML_ARRIVALS"] = "1"
-                print("Optional ML-driven arrivals ON for the virtual line", flush=True)
+            if args.ml_driven:
+                env["TEAM12_ML_DRIVEN"] = "1"
+                print("ML-driven line ON: the active model's forecasts set the stage capacities", flush=True)
             requests = queue.Queue()
             replay_state = {"A": "ready", "B": "ready", "line": "not started"}
             replay_process = {}

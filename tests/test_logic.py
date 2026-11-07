@@ -509,6 +509,23 @@ def test_seed_controls_store_the_seed_and_show_the_spread():
     assert "seed INTEGER" in (ROOT / "db" / "schema.sql").read_text()
 
 
+def test_live_model_view_is_wired():
+    import json
+    from common import ROOT
+    nodes = {n["id"]: n for n in json.loads((ROOT / "nodered" / "flow.json").read_text(encoding="utf-8"))}
+    q = nodes["fn_db_queries"]
+    assert q["outputs"] == 7 and q["wires"][4:] == [["db_live"], ["db_b_hits"], ["db_history"]]
+    for name in ("live", "b_hits", "history"):
+        assert nodes[f"db_{name}"]["wires"] == [[f"fn_db_{name}"]]
+        assert nodes[f"fn_db_{name}"]["wires"] == [["fn_overview"]]
+    assert "$tsd" in nodes["fn_forecast"]["func"]
+    assert "body.use=true" in nodes["fn_ui_action"]["func"]
+    panel = nodes["ui_overview"]["format"]
+    for text in ("id='live-forecast-check'", "Train and use", "current bottleneck",
+                 "Live forecasts switched to", "Red dashed line", "Same-state guess"):
+        assert text in panel, text
+
+
 def test_command_gap_is_measured_within_one_shift():
     import decision
     memory = decision.new_memory()
@@ -564,28 +581,38 @@ def test_restarted_virtual_shift_resets_the_detector():
     assert decision.pending is None and decision.last_check_second == 60
 
 
-def test_ml_arrivals_mode_is_off_by_default_and_bounded():
+def test_ml_driven_line_is_off_by_default_and_follows_forecasts():
     import line_sim
     from common import CONFIG
     sim = CONFIG["simulation"]
     plain = line_sim.Line(sim["stages"], sim["arrival_rate_per_min"], sim["seed"], 7200)
     again = line_sim.Line(sim["stages"], sim["arrival_rate_per_min"], sim["seed"], 7200)
     assert plain.arrivals == again.arrivals          # identical-arrivals comparison kept
-    for _ in range(7200):
+    assert all(s.ml_factor == 1.0 for s in plain.stages)
+    for _ in range(3600):
         plain.step()
-    assert plain.tokens_arrived == plain.next_arrival  # nothing thinned by default
-    reference = {0: 18.0, 1: 18.0}
-    assert line_sim.ml_arrival_scale({0: 18.0, 1: 18.0}, reference) == 1.0
-    assert line_sim.ml_arrival_scale({0: 90.0, 1: 90.0}, reference) == line_sim.ML_SCALE_MAX
-    assert line_sim.ml_arrival_scale({0: 0.0, 1: 0.0}, reference) == line_sim.ML_SCALE_MIN
-    assert line_sim.ml_arrival_scale({}, reference) == 1.0
-    low = line_sim.Line(sim["stages"], sim["arrival_rate_per_min"], sim["seed"], 7200,
-                        max_arrival_scale=line_sim.ML_SCALE_MAX)
-    low.arrival_scale = line_sim.ML_SCALE_MIN
-    for _ in range(7200):
-        low.step()
-    assert 0 < low.tokens_arrived < low.next_arrival   # forecasts below normal admit less
+    assert plain.tokens_arrived == plain.next_arrival
+    snap = plain.snapshot()["stages"][0]
+    assert snap["ml_forecast"] is None and snap["effective_rate"] == snap["rate_per_min"]
 
+    line = line_sim.Line(sim["stages"], 0.62, sim["seed"], 7200)
+    stage1 = line.stages[0]                          # calibrated 0.8 tokens/min
+    assert line.set_ml_forecast(0, 0, 12.0, "demo_ridge") == 0.5      # 12/30 = 0.4 = 50%
+    assert line.set_ml_forecast(0, 0, 1000.0, "demo_ridge") == line_sim.ML_DRIVEN["factor_max"]
+    assert line.set_ml_forecast(0, 0, 0.0, "demo_ridge") == line_sim.ML_DRIVEN["factor_min"]
+    line.set_ml_forecast(0, 0, 12.0, "demo_ridge")
+    snap = line.snapshot()
+    assert snap["ml_model"] == "demo_ridge" and snap["stages"][0]["effective_rate"] == 0.4
+    assert stage1.rate == 0.8                         # the operator-set rate is untouched
+
+
+def test_ml_driven_proposal_explains_the_model_forecast():
+    import decision
+    stage = {"stage_name": "Stage 1 - Cutting", "ml_machine": 0, "ml_forecast": 12.0,
+             "effective_rate": 0.4, "ml_factor": 0.5, "rate_per_min": 0.8}
+    text = decision.model_basis(stage, "demo_ridge")
+    assert "demo_ridge" in text and "machine 0" in text and "12.0 items" in text and "50%" in text
+    assert decision.model_basis({"stage_name": "x", "ml_forecast": None}, None) == ""
 
 def test_closed_loop_panel_and_restart_controls_are_wired():
     import json

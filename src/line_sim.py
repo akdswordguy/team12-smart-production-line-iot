@@ -33,7 +33,7 @@ import random
 import time
 from collections import deque
 
-from common import CONFIG, connect, now_iso, path, publish, topic
+from common import CONFIG, connect, now_iso, publish, topic
 
 SIM = CONFIG["simulation"]
 
@@ -46,6 +46,12 @@ class Stage:
         self.name = name
         self.configured_rate = rate_per_min   # the rate from config.yaml
         self.rate = rate_per_min              # current rate (can change)
+
+        # ML-driven mode only: capacity follows the active model's forecast
+        # for this stage's machine. 1.0 (the default) leaves the stage as is.
+        self.ml_factor = 1.0
+        self.ml_machine = None
+        self.ml_forecast = None
 
         self.queue = []          # tokens waiting for this stage
         self.token = None        # the ONE token being worked on
@@ -86,7 +92,7 @@ class Line:
     so it can also be used by scripts/tests without a broker."""
 
     def __init__(self, stage_config, arrival_rate_per_min, seed, duration,
-                 metrics_window=None, max_arrival_scale=1.0):
+                 metrics_window=None):
         if metrics_window is None:
             metrics_window = SIM["metrics_window_seconds"]
         self.stages = [
@@ -94,15 +100,9 @@ class Line:
             for i, s in enumerate(stage_config)
         ]
         self.duration = duration
-        # Optional ML mode: arrivals are planned at the highest allowed rate
-        # and thinned to the current scale (1.0 = configured rate). With the
-        # default max_arrival_scale=1.0 nothing is thinned, so the standard
-        # line and its identical-arrivals comparison are unchanged.
-        self.max_arrival_scale = float(max_arrival_scale)
-        self.arrival_scale = 1.0
-        self.arrival_rate = arrival_rate_per_min * self.max_arrival_scale
-        self.thin_rng = random.Random(seed + 2)
+        self.arrival_rate = arrival_rate_per_min
         self.tokens_arrived = 0
+        self.ml_model = None      # model whose forecasts set the capacities
 
         # Two separate random streams so changing one does not disturb
         # the other. Both are seeded, so every run is reproducible.
@@ -151,9 +151,6 @@ class Line:
         while (self.next_arrival < len(self.arrivals)
                and self.arrivals[self.next_arrival] <= second):
             self.next_arrival += 1
-            if (self.max_arrival_scale > 1.0
-                    and self.thin_rng.random() > self.arrival_scale / self.max_arrival_scale):
-                continue                      # thinned away by the ML scale
             token = self._new_token(second)
             self.stages[0].queue.append(token)
             self.tokens_arrived += 1
@@ -185,7 +182,9 @@ class Line:
                 stage.wait_count += 1
 
                 # THE core formula. effort is fixed per token; rate can change.
-                service_seconds = token["effort"][stage.index] * (60.0 / stage.rate)
+                # In ML-driven mode the rate is scaled by the model's forecast.
+                service_seconds = token["effort"][stage.index] * (
+                    60.0 / (stage.rate * stage.ml_factor))
                 stage.token = token
                 stage.finish_at = second + max(1, int(round(service_seconds)))
 
@@ -218,6 +217,21 @@ class Line:
                     f"until t={stage.down_until}s (alarm)")
         return None
 
+    def set_ml_forecast(self, stage_index, machine, forecast_items, model):
+        """ML-driven mode: a stage can make what its machine is forecast to make.
+
+        The forecast is items in the next 30 minutes; divided by 30 it is a
+        rate per minute. Relative to the stage's calibrated rate it becomes a
+        capacity factor, bounded so one odd forecast cannot stop the line.
+        """
+        stage = self.stages[stage_index]
+        factor = (float(forecast_items) / 30.0) / stage.configured_rate
+        stage.ml_factor = max(ML_DRIVEN["factor_min"], min(ML_DRIVEN["factor_max"], factor))
+        stage.ml_machine = machine
+        stage.ml_forecast = round(float(forecast_items), 2)
+        self.ml_model = model
+        return stage.ml_factor
+
     def set_rate(self, stage_index, new_rate):
         """The actuator's one job: change a stage's rate."""
         stage = self.stages[stage_index]
@@ -241,6 +255,10 @@ class Line:
                 "completed": s.completed,
                 "avg_wait_seconds": round(s.avg_wait(), 1),
                 "is_down": s.is_down(self.second),
+                "effective_rate": round(s.rate * s.ml_factor, 3),
+                "ml_factor": round(s.ml_factor, 3),
+                "ml_machine": s.ml_machine,
+                "ml_forecast": s.ml_forecast,
             })
 
         waits = [t["wait"] for t in self.finished]
@@ -256,8 +274,7 @@ class Line:
             "tokens_in_system": (
                 self.tokens_arrived - len(self.finished)
             ),
-            "arrival_scale": round(self.arrival_scale, 3),
-            "arrival_source": ML_ARRIVALS["model"] if ML_ARRIVALS["enabled"] else None,
+            "ml_model": self.ml_model,
         }
 
 
@@ -268,45 +285,26 @@ line = None
 mqtt_client = None
 shift_over = False
 
-# Optional "ML drives the line" mode (off unless TEAM12_ML_ARRIVALS=1).
-# The active model's 30-minute output forecasts for the replayed Company A
-# machines are compared with each machine's normal output; their mean ratio
-# scales how much material arrives at Stage 1 (bounded to 0.7x-1.3x).
-ML_SCALE_MIN, ML_SCALE_MAX = 0.7, 1.3
-ML_ARRIVALS = {"enabled": False, "forecasts": {}, "reference": {}, "model": None}
-
-
-def normal_30min_output():
-    """Each machine's typical 30-minute output from the training baselines."""
-    baseline = json.loads(path("baseline").read_text())
-    slots = CONFIG["ml"]["horizon_minutes"] / 5.0
-    reference = {}
-    for asset, hours in baseline.items():
-        medians = sorted(h["median_items_per_slot"] for h in hours.values()
-                         if isinstance(h, dict) and "median_items_per_slot" in h)
-        if medians:
-            reference[int(asset)] = medians[len(medians) // 2] * slots
-    return reference
-
-
-def ml_arrival_scale(forecasts, reference):
-    """Mean forecast/normal ratio over machines, bounded to the safe range."""
-    ratios = [forecasts[a] / reference[a] for a in forecasts
-              if reference.get(a, 0) > 0]
-    if not ratios:
-        return 1.0
-    return max(ML_SCALE_MIN, min(ML_SCALE_MAX, sum(ratios) / len(ratios)))
+# Optional ML-driven line (off unless TEAM12_ML_DRIVEN=1, set by --ml-driven).
+# Each stage is linked to the Company A machine its rate was calibrated from
+# (config simulation.ml_driven.stage_machines). The active model's 30-minute
+# forecast for that machine sets the stage's capacity, and demand is set near
+# capacity, so the stage the model expects to be weakest becomes the
+# bottleneck. A different model can therefore move the bottleneck.
+ML_DRIVEN = {"enabled": False, **SIM["ml_driven"]}
 
 
 def on_forecast(payload):
     if not isinstance(payload, dict) or payload.get("source") != "forecast":
         return
     try:
-        ML_ARRIVALS["forecasts"][int(payload["asset"])] = float(payload["predicted_items"])
+        machine = int(payload["asset"])
+        forecast = float(payload["predicted_items"])
     except (KeyError, TypeError, ValueError):
         return
-    ML_ARRIVALS["model"] = payload.get("model")
-    line.arrival_scale = ml_arrival_scale(ML_ARRIVALS["forecasts"], ML_ARRIVALS["reference"])
+    machines = ML_DRIVEN["stage_machines"]
+    if machine in machines:
+        line.set_ml_forecast(machines.index(machine), machine, forecast, payload.get("model"))
 
 
 def on_message(client, userdata, message):
@@ -389,25 +387,29 @@ def main():
         raise SystemExit("TEAM12_SIM_SPEED must be a positive finite number")
 
     shift_over = False
-    ML_ARRIVALS["enabled"] = os.getenv("TEAM12_ML_ARRIVALS", "").lower() in ("1", "true", "yes")
-    line = Line(SIM["stages"], SIM["arrival_rate_per_min"],
-                SIM["seed"], SIM["duration_seconds"],
-                max_arrival_scale=ML_SCALE_MAX if ML_ARRIVALS["enabled"] else 1.0)
+    ML_DRIVEN["enabled"] = any(os.getenv(name, "").lower() in ("1", "true", "yes")
+                               for name in ("TEAM12_ML_DRIVEN", "TEAM12_ML_ARRIVALS"))
+    arrival_rate = SIM["arrival_rate_per_min"]
+    if ML_DRIVEN["enabled"]:
+        arrival_rate = ML_DRIVEN["arrival_rate_per_min"]
+        scenario["kind"] = "none"     # the model, not a script, creates the bottleneck
+    line = Line(SIM["stages"], arrival_rate, SIM["seed"], SIM["duration_seconds"])
 
     mqtt_client = connect("line_sim")
     mqtt_client.on_message = on_message
     mqtt_client.subscribe(topic("sim_command"))
-    if ML_ARRIVALS["enabled"]:
-        ML_ARRIVALS["reference"] = normal_30min_output()
+    if ML_DRIVEN["enabled"]:
         mqtt_client.subscribe(topic("forecast") + "/#")
-        print("ML-driven arrivals ON: the active model's forecasts scale Stage 1 "
-              f"arrivals between {ML_SCALE_MIN}x and {ML_SCALE_MAX}x")
+        pairs = ", ".join(f"{s.name} <- machine {m}"
+                          for s, m in zip(line.stages, ML_DRIVEN["stage_machines"]))
+        print(f"ML-DRIVEN LINE ON: {pairs}. Each stage's capacity follows the active "
+              f"model's forecast; demand {arrival_rate} tokens/min; no scripted fault.")
     mqtt_client.loop_start()
 
     print("VIRTUAL LINE - all values below are SIMULATED")
     for s in line.stages:
         print(f"  {s.name}: {s.rate} tokens/min")
-    print(f"  arrivals: {SIM['arrival_rate_per_min']} tokens/min")
+    print(f"  arrivals: {arrival_rate} tokens/min")
     print(f"  scenario: {scenario['kind']} on stage {scenario['stage_index']} "
           f"at t={scenario['start_second']}s")
     print(f"  running {SIM['duration_seconds']}s of simulated time at "

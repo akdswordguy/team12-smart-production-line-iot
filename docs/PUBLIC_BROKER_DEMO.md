@@ -57,7 +57,7 @@ If `broker.hivemq.com:8000` is blocked on your network, the public broker also o
 
 ## Showing it again, and the optional ML-driven line
 
-After a replay finishes, its card offers **Replay Company A again** (or B). **Restart virtual shift** under the approval card starts a new simulated shift on the device and resets the detector, so the bottleneck can be shown again without restarting either role. Adding `--ml-arrivals` to the device command lets the active model's forecasts scale virtual-line arrivals (0.7-1.3x); see `docs/DEMO_SCRIPT.md`.
+After a replay finishes, its card offers **Replay Company A again** (or B). **Restart virtual shift** under the approval card starts a new simulated shift on the device and resets the detector, so the bottleneck can be shown again without restarting either role. Adding `--ml-driven` to the device command makes each stage's capacity follow the active model's forecast for its machine, so the model decides the bottleneck; see `docs/DEMO_SCRIPT.md`.
 
 ## What was verified here
 
